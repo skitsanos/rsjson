@@ -20,7 +20,6 @@ build = {
   platforms = {
     unix = {
       build_command = [[
-        cargo build --release &&
         cp target/release/librsjson.so .
       ]],
       install = {
@@ -34,7 +33,6 @@ build = {
     },
     macosx = {
       build_command = [[
-        cargo build --release &&
         cp target/release/librsjson.dylib .
       ]],
       install = {
@@ -48,7 +46,6 @@ build = {
     },
     windows = {
       build_command = [[
-        cargo build --release &&
         copy target\\release\\rsjson.dll .
       ]],
       install = {
