@@ -49,13 +49,11 @@ jobs:
           name: rsjson-windows
           path: target/release/rsjson.dll
 
-      - name: Install LuaRocks (Linux and macOS)
-        if: matrix.os != 'windows-latest'
+      - name: Install LuaRocks (macOS)
+        if: matrix.os == 'macos-latest'
         run: |
-          wget https://luarocks.org/releases/luarocks-3.9.2.tar.gz
-          tar zxpf luarocks-3.9.2.tar.gz
-          cd luarocks-3.9.2
-          ./configure && make && sudo make install
+          brew update
+          brew install luarocks
 
       - name: Install LuaRocks (Windows)
         if: matrix.os == 'windows-latest'
