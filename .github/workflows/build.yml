@@ -52,7 +52,10 @@ jobs:
       - name: Install LuaRocks (Linux and macOS)
         if: matrix.os != 'windows-latest'
         run: |
-          wget -O - https://raw.githubusercontent.com/luarocks/luarocks/master/tools/travis-install.sh | bash
+          wget https://luarocks.org/releases/luarocks-3.9.2.tar.gz
+          tar zxpf luarocks-3.9.2.tar.gz
+          cd luarocks-3.9.2
+          ./configure && make && sudo make install
 
       - name: Install LuaRocks (Windows)
         if: matrix.os == 'windows-latest'
