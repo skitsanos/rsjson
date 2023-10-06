@@ -73,3 +73,9 @@ jobs:
       - name: Build LuaRocks Package (non-Linux)
         if: matrix.os != 'ubuntu-latest'
         run: luarocks make rsjson-1.0-1.rockspec
+
+      - name: Upload LuaRocks Package
+        uses: actions/upload-artifact@v3
+        with:
+          name: rsjson-${{ matrix.os }}
+          path: rsjson-1.0-1.src.rock
