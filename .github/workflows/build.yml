@@ -80,7 +80,7 @@ jobs:
         run: luarocks make --pack-binary-rock rsjson-1.0-1.rockspec
 
       - name: Upload LuaRocks Package
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: rsjson-${{ matrix.os }}.rock
           path: rsjson-1.0-1.*.rock
