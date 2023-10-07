@@ -81,4 +81,8 @@ jobs:
           path: rsjson-1.0-1.src.rock
 
       - name: Upload LuaRocks Package
-        run: luarocks upload --force --api-key "{{secrets.LUAROCKS_API_KEY}}" rsjson-1.0-1.rockspec
+        run: |
+          luarocks install cjson
+          luarocks upload --force --api-key "{{secrets.LUAROCKS_API_KEY}}" rsjson-1.0-1.rockspec
+          
+        
