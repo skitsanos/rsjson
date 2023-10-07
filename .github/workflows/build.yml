@@ -68,11 +68,11 @@ jobs:
 
       - name: Build LuaRocks Package (Linux)
         if: matrix.os == 'ubuntu-latest'
-        run: sudo luarocks make rsjson-1.0-1.rockspec
+        run: sudo luarocks build --pack-binary-rock rsjson-1.0-1.rockspec
 
       - name: Build LuaRocks Package (non-Linux)
         if: matrix.os != 'ubuntu-latest'
-        run: luarocks make rsjson-1.0-1.rockspec
+        run: luarocks build --pack-binary-rock rsjson-1.0-1.rockspec
 
       - name: Upload LuaRocks Package
         uses: actions/upload-artifact@v3
