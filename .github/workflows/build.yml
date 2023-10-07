@@ -89,13 +89,13 @@ jobs:
         run: |
           #luarocks upload --force --api-key "${{secrets.LUAROCKS_API_KEY}}" rsjson-1.0-1.rockspec
           echo "Deone"
-          
-      - name: Check and Add Tag
-        run: |
-          if ! gh release view v1.0.1; then
-            git tag v1.0.1
-            git push origin v1.0.1
-          fi
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: "marvinpinto/action-automatic-releases@latest"
+        with:
+          repo_token: "${{ secrets.GITHUB_TOKEN }}"
+          automatic_release_tag: "latest"
+          prerelease: false
+          title: "Latest Build"
+          files: |
+            *.rock
 
