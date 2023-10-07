@@ -53,6 +53,8 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt update
+          sudo apt install lua5.1
+          lua -v
           #sudo apt install build-essential libreadline-dev unzip
           sudo apt install luarocks
           sudo luarocks install cjson
