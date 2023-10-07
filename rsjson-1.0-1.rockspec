@@ -1,15 +1,14 @@
 package = "rsjson"
 version = "1.0-1"
 source = {
-  url = "git://github.com/yourusername/rsjson.git",
-  tag = "v1.0"
+  url = "git://github.com/skitsanos/rsjson.git"
 }
 description = {
   summary = "A Rust library for JSON encoding and decoding in OpenResty Lua.",
   detailed = [[
     rsjson is a Rust library designed to be called from OpenResty Lua for JSON encoding and decoding.
   ]],
-  homepage = "https://github.com/yourusername/rsjson",
+  homepage = "https://github.com/skitsanos/rsjson",
   license = "MIT"
 }
 dependencies = {
