@@ -53,24 +53,23 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt update
-          sudo apt install lua5.3
-          lua -v
-          #sudo apt install build-essential libreadline-dev unzip
+          sudo apt upgrade -y
+          sudo apt install build-essential libreadline-dev unzip
           sudo apt install luarocks
-          sudo luarocks install cjson
+          sudo luarocks install dkjson
 
       - name: Install LuaRocks (macOS)
         if: matrix.os == 'macos-latest'
         run: |
           brew update
           brew install luarocks
-          luarocks install cjson
+          luarocks install dkjson
 
       - name: Install LuaRocks (Windows)
         if: matrix.os == 'windows-latest'
         run: |
           choco install luarocks
-          luarocks install cjson
+          luarocks install dkjson
 
       - name: Build LuaRocks Package (Linux)
         if: matrix.os == 'ubuntu-latest'
