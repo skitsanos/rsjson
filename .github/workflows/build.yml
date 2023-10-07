@@ -96,5 +96,5 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           draft: true
-          name: latest
+          tag: latest
           artifacts: "*.rock"
