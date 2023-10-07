@@ -55,16 +55,20 @@ jobs:
           sudo apt update
           #sudo apt install build-essential libreadline-dev unzip
           sudo apt install luarocks
+          luarocks install cjson
 
       - name: Install LuaRocks (macOS)
         if: matrix.os == 'macos-latest'
         run: |
           brew update
           brew install luarocks
+          luarocks install cjson
 
       - name: Install LuaRocks (Windows)
         if: matrix.os == 'windows-latest'
-        run: choco install luarocks
+        run: |
+          choco install luarocks
+          luarocks install cjson
 
       - name: Build LuaRocks Package (Linux)
         if: matrix.os == 'ubuntu-latest'
@@ -81,8 +85,6 @@ jobs:
           path: rsjson-1.0-1.src.rock
 
       - name: Upload LuaRocks Package
-        run: |
-          luarocks install cjson
-          luarocks upload --force --api-key "{{secrets.LUAROCKS_API_KEY}}" rsjson-1.0-1.rockspec
+        run: luarocks upload --force --api-key "{{secrets.LUAROCKS_API_KEY}}" rsjson-1.0-1.rockspec
           
         
