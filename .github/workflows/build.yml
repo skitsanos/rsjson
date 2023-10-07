@@ -8,7 +8,7 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
-  
+
 permissions:
   contents: write
 
@@ -87,17 +87,25 @@ jobs:
         with:
           name: rsjson-${{ matrix.os }}.rock
           path: rsjson-1.0-1.*.rock
-
-      - name: Upload LuaRocks Package
-        run: |
-          #luarocks upload --force --api-key "${{secrets.LUAROCKS_API_KEY}}" rsjson-1.0-1.rockspec
-          echo "Done"
-
       - name: Release
-        uses: ncipollo/release-action@v1
+        uses: softprops/action-gh-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag: latest
-          name: latest-${{ matrix.os }}
-          artifacts: "*.rock"
+          tag_name: latest
+          files: |
+            *.rock
+#      - name: Upload LuaRocks Package
+#        run: |
+#          #luarocks upload --force --api-key "${{secrets.LUAROCKS_API_KEY}}" rsjson-1.0-1.rockspec
+#          echo "Done"
+#
+#      - name: Release
+#        uses: ncipollo/release-action@v1
+#        env:
+#          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#        with:
+#          tag: latest
+#          name: ${{ matrix.os }}
+#          artifacts: "*.rock"
+#          removeArtifacts: true
