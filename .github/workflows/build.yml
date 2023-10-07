@@ -53,7 +53,7 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt update
-          sudo apt install lua5.1
+          sudo apt install lua5.3
           lua -v
           #sudo apt install build-essential libreadline-dev unzip
           sudo apt install luarocks
