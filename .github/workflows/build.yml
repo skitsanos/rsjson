@@ -93,5 +93,6 @@ jobs:
       - name: Release
         uses: ncipollo/release-action@v1
         with:
+          token: ${{ secrets.GITHUB_TOKEN }}
           tag: latest
           artifacts: "*.rock"
