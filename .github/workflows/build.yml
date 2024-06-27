@@ -5,8 +5,6 @@ on:
     branches: [ "main" ]
     tags: # This will also trigger on new tags
       - '*'
-  pull_request:
-    branches: [ "main" ]
 
 env:
   CARGO_TERM_COLOR: always
@@ -31,14 +29,8 @@ jobs:
       - name: Extract Version from Tag or Branch
         id: extract_version
         run: |
-          CURRENT_TAG=$(git describe --tags --abbrev=0)
-          if [[ -z "$CURRENT_TAG" ]]; then
-            #CURRENT_TAG=$(git rev-parse --abbrev-ref HEAD)
-            exit 1
-          fi
-          echo "Current Tag/Branch: $CURRENT_TAG"
-          echo "VERSION=$CURRENT_TAG" >> $GITHUB_ENV
-
+          TAG_NAME=${GITHUB_REF#refs/tags/v}
+          echo "VERSION=TAG_NAME" >> $GITHUB_ENV
 
           echo "Building version: ${{ env.VERSION }}"
 
