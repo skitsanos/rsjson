@@ -1,5 +1,5 @@
 package = "rsjson"
-version = "1.0-1"
+version = "{{VERSION}}"
 source = {
   url = "git://github.com/skitsanos/rsjson.git"
 }

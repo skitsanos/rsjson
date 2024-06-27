@@ -77,13 +77,21 @@ jobs:
           choco install luarocks
           luarocks install dkjson
 
-      - name: Build LuaRocks Package (Linux)
-        if: matrix.os == 'ubuntu-latest'
-        run: sudo luarocks make --pack-binary-rock rsjson-${{ env.VERSION }}.rockspec
+      - name: Prepare rockspec file (Non-Windows)
+        if: matrix.os != 'windows-latest'
+        run: |
+          # load 'rsjson-template.rockspec' and replace '{{VERSION}}' with the current version
+          sed "s/{{VERSION}}/${{ env.VERSION }}/g" rsjson-template.rockspec > rsjson-${{ env.VERSION }}.rockspec
 
-      - name: Build LuaRocks Package (non-Linux)
-        if: matrix.os != 'ubuntu-latest'
-        run: luarocks make --pack-binary-rock rsjson-${{ env.VERSION }}.rockspec
+      - name: Prepare rockspec file (Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          # load 'rsjson-template.rockspec' and replace '{{VERSION}}' with the current version
+          (Get-Content rsjson-template.rockspec) -replace '{{VERSION}}', $env:VERSION | Set-Content rsjson-${{ env.VERSION }}.rockspec
+
+      - name: Build LuaRocks Package
+        run: |          
+          sudo luarocks make --pack-binary-rock rsjson-${{ env.VERSION }}.rockspec
 
       - name: Upload LuaRocks Package
         uses: actions/upload-artifact@v4
