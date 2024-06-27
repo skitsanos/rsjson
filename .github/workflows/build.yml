@@ -28,6 +28,20 @@ jobs:
         with:
           toolchain: stable
 
+      - name: Extract Version from Tag or Branch
+        id: extract_version
+        run: |
+          CURRENT_TAG=$(git describe --tags --abbrev=0)
+          if [[ -z "$CURRENT_TAG" ]]; then
+            #CURRENT_TAG=$(git rev-parse --abbrev-ref HEAD)
+            exit 1
+          fi
+          echo "Current Tag/Branch: $CURRENT_TAG"
+          echo "VERSION=$CURRENT_TAG" >> $GITHUB_ENV
+
+
+          echo "Building version: ${{ env.VERSION }}"
+
       - name: Build
         run: cargo build --release
 
@@ -73,18 +87,6 @@ jobs:
         run: |
           choco install luarocks
           luarocks install dkjson
-
-      - name: Extract Version from Tag or Branch
-        id: extract_version
-        run: |
-          echo "${{github.ref_name}}"
-          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
-            echo "VERSION=${GITHUB_REF/refs/tags/}" >> $GITHUB_ENV
-          else
-            echo "VERSION=${GITHUB_REF/refs\/heads\//}" >> $GITHUB_ENV
-          fi
-          
-          echo "Building version: ${{ env.VERSION }}"
 
       - name: Build LuaRocks Package (Linux)
         if: matrix.os == 'ubuntu-latest'
