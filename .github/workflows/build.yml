@@ -77,6 +77,7 @@ jobs:
       - name: Extract Version from Tag or Branch
         id: extract_version
         run: |
+          echo "${{github.ref_name}}"
           if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
             echo "VERSION=${GITHUB_REF/refs/tags/}" >> $GITHUB_ENV
           else
