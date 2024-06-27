@@ -31,7 +31,7 @@ jobs:
           echo "TAG_NAME=${{ github.ref_name }}" >> $GITHUB_ENV
           VERSION="${{ github.ref_name }}"
           echo "VERSION=${VERSION#v}" >> $GITHUB_ENV
-          ROCKS_VERSION="${VERSION//\./-}"
+          ROCKS_VERSION=$(echo $VERSION | sed 's/\.\([0-9]*\)$/-\1/')
           echo "ROCKS_VERSION=$ROCKS_VERSION" >> $GITHUB_ENV
 
       - name: Set env (Windows)
