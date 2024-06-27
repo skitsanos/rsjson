@@ -1,9 +1,9 @@
 name: Build rsjson lib
 
 on:
-  release:
-    types: [published]
-
+  push:
+    tags:
+      - 'v*.*.*'
 
 env:
   CARGO_TERM_COLOR: always
@@ -25,11 +25,8 @@ jobs:
         with:
           toolchain: stable
 
-      - name: Extract version from tag
-        id: extract_version
-        run: |
-          VERSION=${GITHUB_REF#refs/tags/v}
-          echo "VERSION=$VERSION" >> $GITHUB_ENV
+      - name: Set env
+        run: echo "VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
 
       - name: Print the version
         run: echo "The current version is ${{ env.VERSION }}"
