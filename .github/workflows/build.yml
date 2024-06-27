@@ -99,13 +99,13 @@ jobs:
         if: matrix.os != 'windows-latest'
         run: |
           # load 'rsjson-template.rockspec' and replace '{{VERSION}}' with the current version
-          sed "s/{{VERSION}}/${{ env.VERSION }}/g" rsjson-template.rockspec > rsjson-${{ env.ROCKS_VERSION }}.rockspec
+          sed "s/{{VERSION}}/${{ env.ROCKS_VERSION }}/g" rsjson-template.rockspec > rsjson-${{ env.ROCKS_VERSION }}.rockspec
 
       - name: Prepare rockspec file (Windows)
         if: matrix.os == 'windows-latest'
         run: |
           # load 'rsjson-template.rockspec' and replace '{{VERSION}}' with the current version
-          (Get-Content rsjson-template.rockspec) -replace '{{VERSION}}', $env:VERSION | Set-Content rsjson-${{ env.ROCKS_VERSION }}.rockspec
+          (Get-Content rsjson-template.rockspec) -replace '{{VERSION}}', $env:ROCKS_VERSION | Set-Content rsjson-${{ env.ROCKS_VERSION }}.rockspec
 
       - name: Build LuaRocks Package
         run: |          
