@@ -3,6 +3,8 @@ name: Build rsjson lib
 on:
   push:
     branches: [ "main" ]
+    tags: # This will also trigger on new tags
+      - '*'
   pull_request:
     branches: [ "main" ]
 
@@ -72,38 +74,33 @@ jobs:
           choco install luarocks
           luarocks install dkjson
 
+      - name: Extract Version from Tag
+        id: extract_version
+        run: echo "VERSION=${GITHUB_REF/refs\/tags\//}" >> $GITHUB_ENV
+
       - name: Build LuaRocks Package (Linux)
         if: matrix.os == 'ubuntu-latest'
-        run: sudo luarocks make --pack-binary-rock rsjson-1.0-1.rockspec
+        run: sudo luarocks make --pack-binary-rock rsjson-${{ env.VERSION }}.rockspec
 
       - name: Build LuaRocks Package (non-Linux)
         if: matrix.os != 'ubuntu-latest'
-        run: luarocks make --pack-binary-rock rsjson-1.0-1.rockspec
+        run: luarocks make --pack-binary-rock rsjson-${{ env.VERSION }}.rockspec
 
       - name: Upload LuaRocks Package
         uses: actions/upload-artifact@v4
         with:
           name: rsjson-${{ matrix.os }}.rock
-          path: rsjson-1.0-1.*.rock
+          path: rsjson-${{ env.VERSION }}.*.rock
+
       - name: Release
         uses: softprops/action-gh-release@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: latest
+          tag_name: ${{ env.VERSION }}
           files: |
-            *.rock
-#      - name: Upload LuaRocks Package
-#        run: |
-#          #luarocks upload --force --api-key "${{secrets.LUAROCKS_API_KEY}}" rsjson-1.0-1.rockspec
-#          echo "Done"
-#
-#      - name: Release
-#        uses: ncipollo/release-action@v1
-#        env:
-#          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-#        with:
-#          tag: latest
-#          name: ${{ matrix.os }}
-#          artifacts: "*.rock"
-#          removeArtifacts: true
+            rsjson-${{ env.VERSION }}.*.rock
+            *.so
+            *.dylib
+            *.dll
+            
