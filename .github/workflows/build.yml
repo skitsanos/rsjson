@@ -74,9 +74,14 @@ jobs:
           choco install luarocks
           luarocks install dkjson
 
-      - name: Extract Version from Tag
+      - name: Extract Version from Tag or Branch
         id: extract_version
-        run: echo "VERSION=${GITHUB_REF/refs\/tags\//}" >> $GITHUB_ENV
+        run: |
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            echo "VERSION=${GITHUB_REF/refs\/tags\//}" >> $GITHUB_ENV
+          else
+            echo "VERSION=${GITHUB_REF/refs\/heads\//}" >> $GITHUB_ENV
+          fi
 
       - name: Build LuaRocks Package (Linux)
         if: matrix.os == 'ubuntu-latest'
@@ -93,6 +98,7 @@ jobs:
           path: rsjson-${{ env.VERSION }}.*.rock
 
       - name: Release
+        if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
