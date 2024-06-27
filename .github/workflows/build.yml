@@ -31,16 +31,23 @@ jobs:
           echo "TAG_NAME=${{ github.ref_name }}" >> $GITHUB_ENV
           VERSION="${{ github.ref_name }}"
           echo "VERSION=${VERSION#v}" >> $GITHUB_ENV
+          ROCKS_VERSION="${VERSION//\./-}"
+          echo "ROCKS_VERSION=$ROCKS_VERSION" >> $GITHUB_ENV
 
       - name: Set env (Windows)
         if: matrix.os == 'windows-latest'
         run: |
-          echo "TAG_NAME=${{ github.ref_name }}" >> $GITHUB_ENV
+          echo "TAG_NAME=${{ github.ref_name }}" >> $env:GITHUB_ENV
           $version = "${{ github.ref_name }}".Substring(1)
-          echo "VERSION=$version" >> $GITHUB_ENV
+          echo "VERSION=$version" >> $env:GITHUB_ENV
+          $rocksVersion = $version -replace '\.(?=\d+$)', '-'
+          echo "ROCKS_VERSION=$rocksVersion" >> $env:GITHUB_ENV
 
       - name: Print the version
-        run: echo "The current version is ${{ env.VERSION }}"
+        run: |
+          echo "Tag: ${{ github.ref_name }}"
+          echo "Version: ${{ env.VERSION }}"
+          echo "Rocks Version: ${{ env.ROCKS_VERSION }}"
 
       - name: Build
         run: cargo build --release
@@ -92,17 +99,17 @@ jobs:
         if: matrix.os != 'windows-latest'
         run: |
           # load 'rsjson-template.rockspec' and replace '{{VERSION}}' with the current version
-          sed "s/{{VERSION}}/${{ env.VERSION }}/g" rsjson-template.rockspec > rsjson-${{ env.VERSION }}-1.rockspec
+          sed "s/{{VERSION}}/${{ env.VERSION }}/g" rsjson-template.rockspec > rsjson-${{ env.ROCKS_VERSION }}.rockspec
 
       - name: Prepare rockspec file (Windows)
         if: matrix.os == 'windows-latest'
         run: |
           # load 'rsjson-template.rockspec' and replace '{{VERSION}}' with the current version
-          (Get-Content rsjson-template.rockspec) -replace '{{VERSION}}', $env:VERSION | Set-Content rsjson-${{ env.VERSION }}-1.rockspec
+          (Get-Content rsjson-template.rockspec) -replace '{{VERSION}}', $env:VERSION | Set-Content rsjson-${{ env.ROCKS_VERSION }}.rockspec
 
       - name: Build LuaRocks Package
         run: |          
-          sudo luarocks make --pack-binary-rock rsjson-${{ env.VERSION }}-1.rockspec
+          sudo luarocks make --pack-binary-rock rsjson-${{ env.ROCKS_VERSION }}.rockspec
 
       - name: Upload LuaRocks Package
         uses: actions/upload-artifact@v4
@@ -118,7 +125,7 @@ jobs:
         with:
           tag_name: ${{ env.VERSION }}
           files: |
-            rsjson-${{ env.VERSION }}*.rock
+            rsjson-*.rock
             *.so
             *.dylib
             *.dll
