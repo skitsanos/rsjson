@@ -26,7 +26,7 @@ jobs:
           toolchain: stable
 
       - name: Set env
-        run: echo "VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
+        run: echo "VERSION=${GITHUB_REF#refs/v*/}" >> $GITHUB_ENV
 
       - name: Print the version
         run: echo "The current version is ${{ env.VERSION }}"
@@ -81,7 +81,7 @@ jobs:
         if: matrix.os != 'windows-latest'
         run: |
           # load 'rsjson-template.rockspec' and replace '{{VERSION}}' with the current version
-          sed "s/{{VERSION}}/${{ env.VERSION }}/g" rsjson-template.rockspec > rsjson-${{ env.VERSION }}.rockspec
+          sed "s/{{VERSION}}/${{ env.VERSION }}/g" rsjson-template.rockspec > rsjson-${{ env.VERSION }}-1.rockspec
 
       - name: Prepare rockspec file (Windows)
         if: matrix.os == 'windows-latest'
