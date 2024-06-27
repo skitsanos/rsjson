@@ -78,10 +78,12 @@ jobs:
         id: extract_version
         run: |
           if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
-            echo "VERSION=${GITHUB_REF/refs\/tags\//}" >> $GITHUB_ENV
+            echo "VERSION=${GITHUB_REF/refs/tags/}" >> $GITHUB_ENV
           else
             echo "VERSION=${GITHUB_REF/refs\/heads\//}" >> $GITHUB_ENV
           fi
+          
+          echo "Building version: ${{ env.VERSION }}"
 
       - name: Build LuaRocks Package (Linux)
         if: matrix.os == 'ubuntu-latest'
