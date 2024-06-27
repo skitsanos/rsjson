@@ -9,6 +9,9 @@ on:
 env:
   CARGO_TERM_COLOR: always
 
+permissions:
+  contents: write
+
 jobs:
   build:
     strategy:
@@ -19,32 +22,30 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Setup Rust
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@stable
         with:
-          profile: minimal
           toolchain: stable
-          override: true
 
       - name: Build
         run: cargo build --release
 
       - name: Upload Artifact (Linux)
         if: matrix.os == 'ubuntu-latest'
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: rsjson-linux
           path: target/release/librsjson.so
 
       - name: Upload Artifact (macOS)
         if: matrix.os == 'macos-latest'
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: rsjson-macos
           path: target/release/librsjson.dylib
 
       - name: Upload Artifact (Windows)
         if: matrix.os == 'windows-latest'
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: rsjson-windows
           path: target/release/rsjson.dll
@@ -80,20 +81,29 @@ jobs:
         run: luarocks make --pack-binary-rock rsjson-1.0-1.rockspec
 
       - name: Upload LuaRocks Package
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: rsjson-${{ matrix.os }}.rock
           path: rsjson-1.0-1.*.rock
-
-      - name: Upload LuaRocks Package
-        run: |
-          #luarocks upload --force --api-key "${{secrets.LUAROCKS_API_KEY}}" rsjson-1.0-1.rockspec
-          echo "Done"
-
       - name: Release
-        uses: ncipollo/release-action@v1
+        uses: softprops/action-gh-release@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          tag: latest
-          allowUpdates: true
-          artifacts: "*.rock"
+          tag_name: latest
+          files: |
+            *.rock
+#      - name: Upload LuaRocks Package
+#        run: |
+#          #luarocks upload --force --api-key "${{secrets.LUAROCKS_API_KEY}}" rsjson-1.0-1.rockspec
+#          echo "Done"
+#
+#      - name: Release
+#        uses: ncipollo/release-action@v1
+#        env:
+#          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#        with:
+#          tag: latest
+#          name: ${{ matrix.os }}
+#          artifacts: "*.rock"
+#          removeArtifacts: true
