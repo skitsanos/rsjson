@@ -98,11 +98,11 @@ jobs:
         if: matrix.os == 'windows-latest'
         run: |
           # load 'rsjson-template.rockspec' and replace '{{VERSION}}' with the current version
-          (Get-Content rsjson-template.rockspec) -replace '{{VERSION}}', $env:VERSION | Set-Content rsjson-${{ env.VERSION }}.rockspec
+          (Get-Content rsjson-template.rockspec) -replace '{{VERSION}}', $env:VERSION | Set-Content rsjson-${{ env.VERSION }}-1.rockspec
 
       - name: Build LuaRocks Package
         run: |          
-          sudo luarocks make --pack-binary-rock rsjson-${{ env.VERSION }}.rockspec
+          sudo luarocks make --pack-binary-rock rsjson-${{ env.VERSION }}-1.rockspec
 
       - name: Upload LuaRocks Package
         uses: actions/upload-artifact@v4
@@ -118,7 +118,7 @@ jobs:
         with:
           tag_name: ${{ env.VERSION }}
           files: |
-            rsjson-${{ env.VERSION }}.*.rock
+            rsjson-${{ env.VERSION }}*.rock
             *.so
             *.dylib
             *.dll
