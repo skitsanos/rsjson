@@ -28,16 +28,16 @@ jobs:
       - name: Set env
         if: matrix.os != 'windows-latest'
         run: |
-          echo "TAG_NAME=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
-          VERSION=${GITHUB_REF#refs/*/}
+          echo "TAG_NAME=${{ github.ref_name }}" >> $GITHUB_ENV
+          VERSION="${{ github.ref_name }}"
           echo "VERSION=${VERSION#v}" >> $GITHUB_ENV
 
       - name: Set env (Windows)
         if: matrix.os == 'windows-latest'
         shell: pwsh
         run: |
-          echo "TAG_NAME=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
-          $version = '${GITHUB_REF#refs/*/}'.Substring(1)
+          echo "TAG_NAME=${{ github.ref_name }}" >> $GITHUB_ENV
+          $version = '${{ github.ref_name }}'.Substring(1)
           echo "VERSION=$version" >> $GITHUB_ENV
 
       - name: Print the version
