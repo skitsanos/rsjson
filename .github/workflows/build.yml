@@ -26,7 +26,10 @@ jobs:
           toolchain: stable
 
       - name: Set env
-        run: echo "VERSION=${GITHUB_REF#refs/v*/}" >> $GITHUB_ENV
+        run: |
+          echo "TAG_NAME=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
+          VERSION=${GITHUB_REF#refs/*/}
+          echo "VERSION=${VERSION#v}" >> $GITHUB_ENV
 
       - name: Print the version
         run: echo "The current version is ${{ env.VERSION }}"
