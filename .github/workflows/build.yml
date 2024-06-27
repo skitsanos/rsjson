@@ -113,7 +113,7 @@ jobs:
           sudo luarocks make --pack-binary-rock rsjson-${{ env.ROCKS_VERSION }}.rockspec
 
       - name: Build LuaRocks Package (Windows)
-        if: matrix.os != 'windows-latest'
+        if: matrix.os == 'windows-latest'
         run: |
           luarocks make --pack-binary-rock rsjson-${{ env.ROCKS_VERSION }}.rockspec
 
