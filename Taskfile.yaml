@@ -122,7 +122,7 @@ tasks:
       - echo "Testing Lua 5.4..."
       - lua -e 'print("Lua 5.4 is working!")'
       - echo "Testing Lua 5.4 with rsjson..."
-      - lua test.lua
+      - lua54 test.lua
 
   test:
     cmds:
