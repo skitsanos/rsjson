@@ -9,10 +9,12 @@ tasks:
   tooling-windows:
     cmds:
       - cmd: |
-          choco install lua -y
+          # download binaries in powershell
+          Invoke-WebRequest -Uri "https://deac-riga.dl.sourceforge.net/project/luabinaries/5.4.2/Windows%20Libraries/Dynamic/lua-5.4.2_Win64_dll17_lib.zip?viasf=1" -OutFile "lua54.zip"
+          Expand-Archive -Path "lua54.zip" -DestinationPath "_tools\Lua\5.4"          
+          
           git clone https://luajit.org/git/luajit.git
           cd luajit/src
-          msvcbuild      
 
   tooling-darwin:
     cmds:
