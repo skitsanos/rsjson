@@ -20,10 +20,12 @@ tasks:
       - brew install luajit
       - brew install lua@5.4
       - brew install luarocks
+      - sudo luarocks install dkjson
 
   tooling-linux:
     cmds:
       - sudo apt install -y luarocks lua5.4 luajit liblua5.4-dev libluajit-5.1-dev
+      - sudo luarocks install dkjson
 
   tooling:
     cmds:

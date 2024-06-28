@@ -4,6 +4,9 @@ on:
   push:
     tags:
       - 'v*.*.*'
+    branches:
+      - master
+
 
 env:
   CARGO_TERM_COLOR: always
@@ -43,11 +46,28 @@ jobs:
           $rocksVersion = $version -replace '\.(?=\d+$)', '-'
           echo "ROCKS_VERSION=$rocksVersion" >> $env:GITHUB_ENV
 
+      - name: Install Task (Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          choco install go-task -y
+
+      - name: Install Task (Darwin)
+        if: matrix.os == 'darwin-latest'
+        run: |
+          brew install go-task
+
+      - name: Install Task (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo snap install task --classic
+
       - name: Print the version
         run: |
           echo "Tag: ${{ github.ref_name }}"
           echo "Version: ${{ env.VERSION }}"
           echo "Rocks Version: ${{ env.ROCKS_VERSION }}"
+          echo "OS: ${{ matrix.os }}"
+          echo "$(task --version)"
 
       - name: Build
         run: cargo build --release
@@ -81,8 +101,7 @@ jobs:
           sudo apt install build-essential libreadline-dev unzip clang libclang-dev
           sudo snap install task --classic
           sudo apt install -y luarocks lua5.4 luajit liblua5.4-dev libluajit-5.1-dev
-          sudo luarocks install dkjson          
-          task --version
+          sudo luarocks install dkjson
 
       - name: Install LuaRocks (macOS)
         if: matrix.os == 'macos-latest'
@@ -96,45 +115,45 @@ jobs:
         run: |
           choco install luarocks
           luarocks install dkjson
-
-      - name: Prepare rockspec file (Non-Windows)
-        if: matrix.os != 'windows-latest'
-        run: |
-          # load 'rsjson-template.rockspec' and replace '{{VERSION}}' with the current version
-          sed "s/{{VERSION}}/${{ env.ROCKS_VERSION }}/g" rsjson-template.rockspec > rsjson-${{ env.ROCKS_VERSION }}.rockspec
-
-      - name: Prepare rockspec file (Windows)
-        if: matrix.os == 'windows-latest'
-        run: |
-          # load 'rsjson-template.rockspec' and replace '{{VERSION}}' with the current version
-          (Get-Content rsjson-template.rockspec) -replace '{{VERSION}}', $env:ROCKS_VERSION | Set-Content rsjson-${{ env.ROCKS_VERSION }}.rockspec
-
-      - name: Build LuaRocks Package (Non-Windows)
-        if: matrix.os != 'windows-latest'
-        run: |          
-          sudo luarocks make --pack-binary-rock rsjson-${{ env.ROCKS_VERSION }}.rockspec
-
-      - name: Build LuaRocks Package (Windows)
-        if: matrix.os == 'windows-latest'
-        run: |
-          luarocks make --pack-binary-rock rsjson-${{ env.ROCKS_VERSION }}.rockspec
-
-      - name: Upload LuaRocks Package
-        uses: actions/upload-artifact@v4
-        with:
-          name: rsjson-${{ matrix.os }}.rock
-          path: rsjson-${{ env.ROCKS_VERSION }}.*.rock
-
-      - name: Release
-        if: startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ env.TAG_NAME }}
-          files: |
-            rsjson-${{ env.ROCKS_VERSION }}.*.rock
-            *.so
-            *.dylib
-            *.dll
-            
+#
+#      - name: Prepare rockspec file (Non-Windows)
+#        if: matrix.os != 'windows-latest'
+#        run: |
+#          # load 'rsjson-template.rockspec' and replace '{{VERSION}}' with the current version
+#          sed "s/{{VERSION}}/${{ env.ROCKS_VERSION }}/g" rsjson-template.rockspec > rsjson-${{ env.ROCKS_VERSION }}.rockspec
+#
+#      - name: Prepare rockspec file (Windows)
+#        if: matrix.os == 'windows-latest'
+#        run: |
+#          # load 'rsjson-template.rockspec' and replace '{{VERSION}}' with the current version
+#          (Get-Content rsjson-template.rockspec) -replace '{{VERSION}}', $env:ROCKS_VERSION | Set-Content rsjson-${{ env.ROCKS_VERSION }}.rockspec
+#
+#      - name: Build LuaRocks Package (Non-Windows)
+#        if: matrix.os != 'windows-latest'
+#        run: |
+#          sudo luarocks make --pack-binary-rock rsjson-${{ env.ROCKS_VERSION }}.rockspec
+#
+#      - name: Build LuaRocks Package (Windows)
+#        if: matrix.os == 'windows-latest'
+#        run: |
+#          luarocks make --pack-binary-rock rsjson-${{ env.ROCKS_VERSION }}.rockspec
+#
+#      - name: Upload LuaRocks Package
+#        uses: actions/upload-artifact@v4
+#        with:
+#          name: rsjson-${{ matrix.os }}.rock
+#          path: rsjson-${{ env.ROCKS_VERSION }}.*.rock
+#
+#      - name: Release
+#        if: startsWith(github.ref, 'refs/tags/')
+#        uses: softprops/action-gh-release@v2
+#        env:
+#          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#        with:
+#          tag_name: ${{ env.TAG_NAME }}
+#          files: |
+#            rsjson-${{ env.ROCKS_VERSION }}.*.rock
+#            *.so
+#            *.dylib
+#            *.dll
+#
