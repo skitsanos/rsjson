@@ -1,0 +1,46 @@
+version: 3
+
+silent: true
+
+vars:
+  DOCKER_TAG: openresty-rjson
+
+tasks:
+  build:
+    cmds:
+      - echo "Building..."
+      - cargo clean
+      - cargo build --release
+
+  jit-test:
+    dir: src-lua
+    cmds:
+      - echo "Testing LuaJIT..."
+      - luajit -e 'print("LuaJIT is working!")'
+      - echo "Testing LuaJIT with a rsjson..."
+      - luajit test.lua
+
+  lua-test:
+    dir: src-lua
+    cmds:
+      - echo "Testing Lua..."
+      - lua -e 'print("Lua is working!")'
+      - echo "Testing Lua with a rsjson..."
+      - lua test.lua
+
+  test:
+    cmds:
+      - task jit-test
+      - task lua-test
+
+  docker-build:
+    dir: docker
+    cmds:
+      - mkdir -p ./app/lib
+      - cp ../src-lua/rsjson.lua ./app/lib/rsjson.lua
+      - docker build --progress plain -t {{.DOCKER_TAG}} .
+
+  docker-run:
+    dir: docker
+    cmds:
+      - docker run -it --rm -d -p "8000:80" {{.DOCKER_TAG}}

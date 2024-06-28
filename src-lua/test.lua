@@ -1,23 +1,37 @@
--- Adding custom paths for C modules
---package.cpath = package.cpath .. ';../target/release/?.dylib'
+package.cpath = package.cpath .. ';../target/release/lib?.dylib'
 
-local json = require('rsjson')
+local json = require("rsjson")
 
-local json_string = '{"user": "demo", "debug": true, "unique_id": 123456, "meta": {"items": ["1","2","3"]}}'
-
-local encoded = json.encode(json_string)
-print("Encoded:", encoded)
-
-local decoded, err = json.decode(encoded)
-if decoded then
-    print("Decoded:", decoded)
-
-    local value, err_get_value = json.get_value(decoded, "meta")
-    if value then
-        print("Value:", value)
-    else
-        print("Get value error:", err_get_value)
-    end
-else
-    print("Decode error:", err)
+-- Parse JSON string to Lua table
+local jsonString = '{"name":"John", "age":30, "city":"New York"}'
+local parsed = json.parse(jsonString)
+print("Parsed JSON:")
+for k, v in pairs(parsed) do
+    print(k, v)
 end
+
+-- Convert Lua table to JSON string
+local luaTable = {
+    name = "Alice",
+    age = 25,
+    hobbies = {"reading", "swimming"},
+    address = {
+        street = "123 Main St",
+        city = "Los Angeles"
+    }
+}
+local stringified = json.stringify(luaTable)
+print("\nStringified JSON:", stringified)
+
+-- Pretty print JSON
+local prettyJson = json.stringify_pretty(luaTable)
+print("\nPretty JSON:")
+print(prettyJson)
+
+print('Using JSON.encode()')
+print(json.encode(luaTable))
+
+print('Using JSON.decode()')
+local decoded = json.decode(prettyJson)
+print(decoded)
+print(decoded.name)

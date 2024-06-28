@@ -1,121 +1,149 @@
-extern crate libc;
-use libc::c_char;
-use std::ffi::{CString, CStr};
-use serde_json::{Value, json};
+use mlua::prelude::*;
+use serde_json::{Value as JsonValue, Error as JsonError};
 
-// Helper function to convert C string to Rust string
-fn c_str_to_string(input: *const c_char) -> Result<String, String> {
-    let c_str = unsafe { CStr::from_ptr(input) };
-    c_str.to_str()
-        .map(|s| s.to_string())
-        .map_err(|_| "Invalid UTF-8 string".to_string())
+// Include the generated bindings
+#[allow(non_upper_case_globals)]
+#[allow(non_camel_case_types)]
+#[allow(non_snake_case)]
+#[allow(dead_code)]
+mod bindings {
+    include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 }
 
-// Helper function to convert Rust string to C string
-fn string_to_c_str(input: String) -> *mut c_char {
-    CString::new(input).unwrap().into_raw()
-}
+pub struct RsJson;
 
-#[no_mangle]
-pub extern "C" fn encode(input: *const c_char) -> *mut c_char {
-    let result = c_str_to_string(input)
-        .and_then(|input_str| {
-            serde_json::from_str::<Value>(&input_str)
-                .map(|val| json!(val).to_string())
-                .map_err(|e| format!("Failed to encode JSON: {}", e))
-        });
+impl RsJson {
+    pub fn parse(input: &str) -> Result<JsonValue, JsonError> {
+        serde_json::from_str(input)
+    }
 
-    match result {
-        Ok(output) => string_to_c_str(output),
-        Err(e) => string_to_c_str(e),
+    pub fn stringify(value: &JsonValue) -> Result<String, JsonError> {
+        serde_json::to_string(value)
+    }
+
+    pub fn stringify_pretty(value: &JsonValue) -> Result<String, JsonError> {
+        serde_json::to_string_pretty(value)
     }
 }
 
-#[no_mangle]
-pub extern "C" fn validate(input: *const c_char) -> *mut c_char {
-    let result = c_str_to_string(input)
-        .and_then(|input_str| {
-            serde_json::from_str::<Value>(&input_str)
-                .map(|_| "Valid JSON".to_string())
-                .map_err(|e| format!("Invalid JSON: {}", e))
-        });
+fn lua_value_to_json(value: LuaValue) -> Result<JsonValue, LuaError> {
+    match value {
+        LuaValue::Nil => Ok(JsonValue::Null),
+        LuaValue::Boolean(b) => Ok(JsonValue::Bool(b)),
+        LuaValue::Integer(i) => Ok(JsonValue::Number(i.into())),
+        LuaValue::Number(n) => Ok(JsonValue::Number(serde_json::Number::from_f64(n).ok_or(LuaError::FromLuaConversionError {
+            from: "number",
+            to: "json",
+            message: Some("float is not finite".into()),
+        })?)),
+        LuaValue::String(s) => Ok(JsonValue::String(s.to_str()?.to_owned())),
+        LuaValue::Table(t) => {
+            let mut object = serde_json::Map::new();
+            let mut array = Vec::new();
+            let mut is_array = true;
+            let mut index = 1;
 
-    match result {
-        Ok(output) => string_to_c_str(output),
-        Err(e) => string_to_c_str(e),
+            for pair in t.pairs::<LuaValue, LuaValue>() {
+                let (k, v) = pair?;
+                match k {
+                    LuaValue::Integer(i) if i as u64 == index => {
+                        array.push(lua_value_to_json(v)?);
+                        index += 1;
+                    }
+                    _ => {
+                        is_array = false;
+                        let key = match k {
+                            LuaValue::String(s) => s.to_str()?.to_owned(),
+                            _ => k.to_string()?,  // Use the ? operator here
+                        };
+                        object.insert(key, lua_value_to_json(v)?);
+                    }
+                }
+            }
+
+            if is_array {
+                Ok(JsonValue::Array(array))
+            } else {
+                Ok(JsonValue::Object(object))
+            }
+        }
+        _ => Err(LuaError::FromLuaConversionError {
+            from: value.type_name(),
+            to: "json",
+            message: None,
+        }),
     }
 }
 
-#[no_mangle]
-pub extern "C" fn get_value(json_str: *const c_char, key: *const c_char) -> *mut c_char {
-    let result = (|| {
-        let json = c_str_to_string(json_str)?;
-        let key = c_str_to_string(key)?;
-        let value: Value = serde_json::from_str(&json)
-            .map_err(|e| format!("Failed to parse JSON: {}", e))?;
-
-        value.get(&key)
-            .map(|v| v.to_string())
-            .ok_or_else(|| format!("Key '{}' not found", key))
-    })();
-
-    match result {
-        Ok(output) => string_to_c_str(output),
-        Err(e) => string_to_c_str(e),
-    }
-}
-
-#[no_mangle]
-pub extern "C" fn free_string(ptr: *mut c_char) {
-    unsafe {
-        if !ptr.is_null() {
-            drop(CString::from_raw(ptr));
+fn json_to_lua_value<'lua>(lua: &'lua Lua, value: &JsonValue) -> Result<LuaValue<'lua>, LuaError> {
+    match value {
+        JsonValue::Null => Ok(LuaValue::Nil),
+        JsonValue::Bool(b) => Ok(LuaValue::Boolean(*b)),
+        JsonValue::Number(n) => {
+            if let Some(i) = n.as_i64() {
+                Ok(LuaValue::Integer(i))
+            } else if let Some(f) = n.as_f64() {
+                Ok(LuaValue::Number(f))
+            } else {
+                Err(LuaError::FromLuaConversionError {
+                    from: "json",
+                    to: "lua",
+                    message: Some("invalid number".into()),
+                })
+            }
+        }
+        JsonValue::String(s) => Ok(LuaValue::String(lua.create_string(s)?)),
+        JsonValue::Array(arr) => {
+            let lua_table = lua.create_table()?;
+            for (i, v) in arr.iter().enumerate() {
+                lua_table.set(i + 1, json_to_lua_value(lua, v)?)?;
+            }
+            Ok(LuaValue::Table(lua_table))
+        }
+        JsonValue::Object(obj) => {
+            let lua_table = lua.create_table()?;
+            for (k, v) in obj {
+                lua_table.set(k.clone(), json_to_lua_value(lua, v)?)?;
+            }
+            Ok(LuaValue::Table(lua_table))
         }
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use std::ffi::CString;
-
-    #[test]
-    fn test_encode() {
-        let input = CString::new(r#"{"key": "value"}"#).unwrap();
-        let result = encode(input.as_ptr());
-        let output = unsafe { CStr::from_ptr(result).to_str().unwrap() };
-        assert_eq!(output, r#"{"key":"value"}"#);
-        free_string(result);
+#[mlua::lua_module]
+fn rsjson(lua: &Lua) -> LuaResult<LuaTable> {
+    // Use the init_lua function from our wrapper
+    unsafe {
+        let _lua_state = bindings::init_lua();
+        // Note: In a real-world scenario, you'd want to manage this Lua state properly
     }
 
-    #[test]
-    fn test_validate() {
-        let valid_input = CString::new(r#"{"key": "value"}"#).unwrap();
-        let result = validate(valid_input.as_ptr());
-        let output = unsafe { CStr::from_ptr(result).to_str().unwrap() };
-        assert_eq!(output, "Valid JSON");
-        free_string(result);
+    let exports = lua.create_table()?;
 
-        let invalid_input = CString::new(r#"{"key": "value""#).unwrap();
-        let result = validate(invalid_input.as_ptr());
-        let output = unsafe { CStr::from_ptr(result).to_str().unwrap() };
-        assert!(output.starts_with("Invalid JSON"));
-        free_string(result);
-    }
+    exports.set("parse", lua.create_function(|lua, input: String| {
+        let json_value = RsJson::parse(&input).map_err(LuaError::external)?;
+        json_to_lua_value(lua, &json_value)
+    })?)?;
 
-    #[test]
-    fn test_get_value() {
-        let json = CString::new(r#"{"key": "value", "nested": {"inner": 42}}"#).unwrap();
-        let key = CString::new("nested").unwrap();
-        let result = get_value(json.as_ptr(), key.as_ptr());
-        let output = unsafe { CStr::from_ptr(result).to_str().unwrap() };
-        assert_eq!(output, r#"{"inner":42}"#);
-        free_string(result);
+    exports.set("decode", lua.create_function(|lua, input: String| {
+        let json_value = RsJson::parse(&input).map_err(LuaError::external)?;
+        json_to_lua_value(lua, &json_value)
+    })?)?;
 
-        let non_existent_key = CString::new("non_existent").unwrap();
-        let result = get_value(json.as_ptr(), non_existent_key.as_ptr());
-        let output = unsafe { CStr::from_ptr(result).to_str().unwrap() };
-        assert_eq!(output, "Key 'non_existent' not found");
-        free_string(result);
-    }
+    exports.set("stringify", lua.create_function(|_, value: LuaValue| {
+        let json_value = lua_value_to_json(value)?;
+        RsJson::stringify(&json_value).map_err(LuaError::external)
+    })?)?;
+
+    exports.set("encode", lua.create_function(|_, value: LuaValue| {
+        let json_value = lua_value_to_json(value)?;
+        RsJson::stringify(&json_value).map_err(LuaError::external)
+    })?)?;
+
+    exports.set("stringify_pretty", lua.create_function(|_, value: LuaValue| {
+        let json_value = lua_value_to_json(value)?;
+        RsJson::stringify_pretty(&json_value).map_err(LuaError::external)
+    })?)?;
+
+    Ok(exports)
 }
