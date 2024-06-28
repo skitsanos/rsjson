@@ -6,22 +6,48 @@ vars:
   DOCKER_TAG: openresty-rjson
 
 tasks:
-  build:
+  build-luajit:
+    dir: rsjson-luajit
     cmds:
       - echo "Building..."
       - cargo clean
-      - cargo build --release
+      - cmd: |
+          export LUAJIT_DIR=$(brew --prefix luajit)
+          export LUAJIT_INCLUDE_DIR="$LUAJIT_DIR/include/luajit-2.1"
+          cargo build --release --target-dir ../target-luajit
+        platforms:
+          - darwin
+  build-lua:
+    dir: rsjson-lua54
+    cmds:
+      - echo "Building..."
+      - cargo clean
+      - cmd: |
+          export LUAJIT_DIR=$(brew --prefix lua@5.4 )
+          export LUAJIT_INCLUDE_DIR="$LUAJIT_DIR/include/lua5.4"
+          cargo build --release --target-dir ../target-lua54
+        platforms:
+          - darwin
 
-  jit-test:
+  build:
+    cmds:
+      - task build-luajit
+      - task build-lua
+
+  test-luajit:
     dir: src-lua
+    env:
+      LUA_CPATH: ../target-luajit/release/lib?.dylib
     cmds:
       - echo "Testing LuaJIT..."
       - luajit -e 'print("LuaJIT is working!")'
       - echo "Testing LuaJIT with a rsjson..."
       - luajit test.lua
 
-  lua-test:
+  test-lua:
     dir: src-lua
+    env:
+      LUA_CPATH: ../target-lua54/release/lib?.dylib
     cmds:
       - echo "Testing Lua..."
       - lua -e 'print("Lua is working!")'
@@ -30,8 +56,8 @@ tasks:
 
   test:
     cmds:
-      - task jit-test
-      - task lua-test
+      - task test-luajit
+      - task test-lua
 
   docker-build:
     dir: docker

@@ -1,4 +1,4 @@
-package.cpath = package.cpath .. ';../target/release/lib?.dylib'
+--package.cpath = package.cpath .. ';../target/release/lib?.dylib'
 
 local json = require("rsjson")
 

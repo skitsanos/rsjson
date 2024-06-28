@@ -1,4 +1,7 @@
-#include <luajit.h>
+#ifdef USE_LUAJIT
+#include <luaj#else
+#include <lua.h>
+#endif
 #include <lualib.h>
 #include <lauxlib.h>
 

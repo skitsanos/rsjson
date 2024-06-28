@@ -1,0 +1,18 @@
+[package]
+name = "rsjson-luajit"
+description = "A JSON parser and serializer for LuaJIT using Rust"
+version = "2.1.0"
+edition = "2021"
+
+[lib]
+name = "rsjson"
+crate-type = ["cdylib"]
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+mlua = { workspace = true, features = ["luajit"] }
+
+[build-dependencies]
+cc = { workspace = true }
+bindgen = { workspace = true }
