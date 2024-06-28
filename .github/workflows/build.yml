@@ -78,10 +78,10 @@ jobs:
         run: |
           sudo apt update
           sudo apt upgrade -y
-          sudo apt install build-essential libreadline-dev unzip
-          sudo apt install luarocks
-          sudo luarocks install dkjson
+          sudo apt install build-essential libreadline-dev unzip clang libclang-dev
           sudo snap install task --classic
+          sudo apt install -y luarocks lua5.4 luajit liblua5.4-dev libluajit-5.1-dev
+          sudo luarocks install dkjson          
           task --version
 
       - name: Install LuaRocks (macOS)
