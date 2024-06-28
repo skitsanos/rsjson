@@ -1,12 +1,6 @@
 name: Build rsjson lib
 
-on:
-  push:
-#    tags:
-#      - 'v*.*.*'
-    branches:
-      - master
-
+on: push
 
 env:
   CARGO_TERM_COLOR: always
