@@ -56,15 +56,15 @@ tasks:
     cmds:
       - cargo clean
       - cmd: |
-          set LUAJIT_DIR=C:\Program Files\LuaJIT
-          set LUAJIT_INCLUDE_DIR=%LUAJIT_DIR%\include\luajit-2.1
+          git clone https://luajit.org/git/luajit.git
+          set LUAJIT_DIR=luajit
+          set LUAJIT_INCLUDE_DIR=%LUAJIT_DIR%\src
           cargo build --release --target-dir ../target-luajit
       - cmd: if not exist ..\target-luajit\release\rsjson.dll (echo Build failed && exit /b 1)
 
   build-lua-darwin:
     dir: rsjson-lua54
     cmds:
-      - echo "Building Lua 5.4 version..."
       - cargo clean
       - cmd: |
           export LUA_DIR=$(brew --prefix lua@5.4)

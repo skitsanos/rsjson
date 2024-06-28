@@ -68,26 +68,26 @@ jobs:
           task tooling
           task build
 
-      - name: Upload Artifact (Linux)
-        if: matrix.os == 'ubuntu-latest'
-        uses: actions/upload-artifact@v4
-        with:
-          name: rsjson-linux
-          path: target/release/librsjson.so
-
-      - name: Upload Artifact (macOS)
-        if: matrix.os == 'macos-latest'
-        uses: actions/upload-artifact@v4
-        with:
-          name: rsjson-macos
-          path: target/release/librsjson.dylib
-
-      - name: Upload Artifact (Windows)
-        if: matrix.os == 'windows-latest'
-        uses: actions/upload-artifact@v4
-        with:
-          name: rsjson-windows
-          path: target/release/rsjson.dll
+#      - name: Upload Artifact (Linux)
+#        if: matrix.os == 'ubuntu-latest'
+#        uses: actions/upload-artifact@v4
+#        with:
+#          name: rsjson-linux
+#          path: target/release/librsjson.so
+#
+#      - name: Upload Artifact (macOS)
+#        if: matrix.os == 'macos-latest'
+#        uses: actions/upload-artifact@v4
+#        with:
+#          name: rsjson-macos
+#          path: target/release/librsjson.dylib
+#
+#      - name: Upload Artifact (Windows)
+#        if: matrix.os == 'windows-latest'
+#        uses: actions/upload-artifact@v4
+#        with:
+#          name: rsjson-windows
+#          path: target/release/rsjson.dll
 
 #      - name: Install LuaRocks (Linux)
 #        if: matrix.os == 'ubuntu-latest'
