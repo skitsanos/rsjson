@@ -54,9 +54,10 @@ tasks:
       - cargo clean
       - cmd: |
           sudo apt install -y liblua5.4-dev
-          export LUA_DIR=/usr/local
+          export LUA_DIR=/usr
           export LUA_INCLUDE_DIR="$LUA_DIR/include/lua5.4"
-          cargo build --release       - cmd: test -f ../target-lua54/release/librsjson.so || (echo "Build failed" && exit 1)
+          cargo build --release --target-dir ../target-lua54
+      - cmd: test -f ../target-lua54/release/librsjson.so || (echo "Build failed" && exit 1)
 
   build-lua-windows:
     dir: rsjson-lua54

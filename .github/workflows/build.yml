@@ -81,6 +81,8 @@ jobs:
           sudo apt install build-essential libreadline-dev unzip
           sudo apt install luarocks
           sudo luarocks install dkjson
+          sudo snap install task --classic
+          task --version
 
       - name: Install LuaRocks (macOS)
         if: matrix.os == 'macos-latest'
