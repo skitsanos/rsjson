@@ -1,5 +1,5 @@
 use mlua::prelude::*;
-use serde_json::{Value as JsonValue, Error as JsonError};
+use serde_json::{Error as JsonError, Value as JsonValue};
 
 // Include the generated bindings
 #[allow(non_upper_case_globals)]

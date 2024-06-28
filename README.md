@@ -1,6 +1,7 @@
 # rsjson
 
-`rsjson` is a Rust library designed to be called from OpenResty Lua for JSON encoding and decoding. It provides a high-performance, safe, and easy-to-use solution for working with JSON data in Lua.
+`rsjson` is a Rust library designed to be called from OpenResty Lua for JSON encoding and decoding. It provides a
+high-performance, safe, and easy-to-use solution for working with JSON data in Lua.
 
 ## Features
 
@@ -46,8 +47,10 @@ Decodes a JSON-formatted string and returns a Lua table.
 Encodes a Lua table into a JSON-formatted string.
 
 ## Contributing
+
 Feel free to open issues or pull requests if you have suggestions or improvements.
 
 ## License
+
 This project is licensed under the MIT License.
 

@@ -9,12 +9,19 @@ tasks:
   tooling-windows:
     cmds:
       - cmd: |
-          # download binaries in powershell
+          powershell -c '
           Invoke-WebRequest -Uri "https://deac-riga.dl.sourceforge.net/project/luabinaries/5.4.2/Windows%20Libraries/Dynamic/lua-5.4.2_Win64_dll17_lib.zip?viasf=1" -OutFile "lua54.zip"
-          Expand-Archive -Path "lua54.zip" -DestinationPath "_tools\Lua\5.4"          
+          Expand-Archive -Path "lua54.zip" -DestinationPath "_tools\Lua\5.4" -Force
           
-          git clone https://luajit.org/git/luajit.git
-          cd luajit/src
+          Invoke-WebRequest -Uri "https://github.com/LuaJIT/LuaJIT/archive/refs/heads/v2.1.zip" -Outfile "luajit.zip"
+          Expand-Archive -Path "luajit.zip" -DestinationPath "_tools\luajit" -Force
+          
+          Invoke-WebRequest -Uri "https://www.lua.org/ftp/lua-5.4.6.tar.gz" -Outfile "lua-5.4.6.tar.gz"
+          tar -xzf  "lua-5.4.6.tar.gz" -C "_tools"
+          New-Item -Path "_tools\lua-5.4.6\lib\" -ItemType Directory -Force
+          Copy-Item -Path "_tools\Lua\5.4\lua54.dll" -Destination "_tools\lua-5.4.6\lib\lua54.dll"
+          Copy-Item -Path "_tools\Lua\5.4\lua54.lib" -Destination "_tools\lua-5.4.6\lib\lua54.lib"
+          '
 
   tooling-darwin:
     cmds:
@@ -55,10 +62,21 @@ tasks:
 
   build-luajit-windows:
     dir: rsjson-luajit
+    env:
+      LUAJIT_DIR: ..\_tools\luajit\LuaJIT-2.1\
+      LUAJIT_INCLUDE_DIR: ..\_tools\luajit\LuaJIT-2.1\src
     cmds:
       - cargo clean
       - cmd: |
-          git clone https://luajit.org/git/luajit.git
+          echo "%LUAJIT_DIR%"
+          echo "${env:LUAJIT_DIR}"
+          powershell -c '
+            #echo "${env:LUAJIT_DIR}"
+            cd "${env:LUAJIT_INCLUDE_DIR}"
+          '
+          
+          exit 1
+          #git clone https://luajit.org/git/luajit.git
           set LUAJIT_DIR=luajit
           set LUAJIT_INCLUDE_DIR=%LUAJIT_DIR%\src
           cargo build --release --target-dir ../target-luajit
@@ -87,13 +105,15 @@ tasks:
 
   build-lua-windows:
     dir: rsjson-lua54
+    env:
+      LUA_DIR: ..\_tools\Lua\5.4
+      LUA_INCLUDE_DIR: ..\_tools\Lua\5.4\include
     cmds:
       - cargo clean
       - cmd: |
-          set LUA_DIR=C:\Program Files\Lua\5.4
-          set LUA_INCLUDE_DIR=%LUA_DIR%\include
+          powershell -c '
           cargo build --release --target-dir ../target-lua54
-      - cmd: if not exist ..\target-lua54\release\rsjson.dll (echo Build failed && exit /b 1
+          '
 
   build-luajit:
     cmds:
