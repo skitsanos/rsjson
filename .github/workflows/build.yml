@@ -49,13 +49,11 @@ jobs:
         if: matrix.os == 'macos-latest'
         run: |
           brew install go-task
-          task tooling
 
       - name: Install Task (Linux)
         if: matrix.os == 'ubuntu-latest'
         run: |
           sudo snap install task --classic
-          task tooling
 
       - name: Print the version
         run: |
@@ -66,7 +64,9 @@ jobs:
           echo "$(task --version)"
 
       - name: Build
-        run: task build
+        run: |
+          task tooling
+          task build
 
       - name: Upload Artifact (Linux)
         if: matrix.os == 'ubuntu-latest'
@@ -89,28 +89,28 @@ jobs:
           name: rsjson-windows
           path: target/release/rsjson.dll
 
-      - name: Install LuaRocks (Linux)
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          sudo apt update
-          sudo apt upgrade -y
-          sudo apt install build-essential libreadline-dev unzip clang libclang-dev
-          sudo snap install task --classic
-          sudo apt install -y luarocks lua5.4 luajit liblua5.4-dev libluajit-5.1-dev
-          sudo luarocks install dkjson
+#      - name: Install LuaRocks (Linux)
+#        if: matrix.os == 'ubuntu-latest'
+#        run: |
+#          sudo apt update
+#          sudo apt upgrade -y
+#          sudo apt install build-essential libreadline-dev unzip clang libclang-dev
+#          sudo snap install task --classic
+#          sudo apt install -y luarocks lua5.4 luajit liblua5.4-dev libluajit-5.1-dev
+#          sudo luarocks install dkjson
 
-      - name: Install LuaRocks (macOS)
-        if: matrix.os == 'macos-latest'
-        run: |
-          brew update
-          brew install luarocks
-          luarocks install dkjson
-
-      - name: Install LuaRocks (Windows)
-        if: matrix.os == 'windows-latest'
-        run: |
-          choco install luarocks
-          luarocks install dkjson
+#      - name: Install LuaRocks (macOS)
+#        if: matrix.os == 'macos-latest'
+#        run: |
+#          brew update
+#          brew install luarocks
+#          luarocks install dkjson
+#
+#      - name: Install LuaRocks (Windows)
+#        if: matrix.os == 'windows-latest'
+#        run: |
+#          choco install luarocks
+#          luarocks install dkjson
 #
 #      - name: Prepare rockspec file (Non-Windows)
 #        if: matrix.os != 'windows-latest'
