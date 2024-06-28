@@ -6,6 +6,29 @@ vars:
   DOCKER_TAG: openresty-rjson
 
 tasks:
+  tooling-windows:
+    cmds:
+      - cmd: |
+          choco install lua -y
+          git clone https://luajit.org/git/luajit.git
+          cd luajit/src
+          msvcbuild      
+
+  tooling-darwin:
+    cmds:
+      - brew update && brew upgrade
+      - brew install luajit
+      - brew install lua@5.4
+      - brew install luarocks
+
+  tooling-linux:
+    cmds:
+      - sudo apt install -y luarocks lua5.4 luajit liblua5.4-dev libluajit-5.1-dev
+
+  tooling:
+    cmds:
+      - task: tooling-{{OS}}
+
   build-luajit-darwin:
     dir: rsjson-luajit
     cmds:
@@ -22,7 +45,6 @@ tasks:
     cmds:
       - cargo clean
       - cmd: |
-          sudo apt install -y libluajit-5.1-dev
           export LUAJIT_DIR=/usr
           export LUAJIT_INCLUDE_DIR="$LUAJIT_DIR/include/luajit-2.1"
           cargo build --release --target-dir ../target-luajit
