@@ -46,7 +46,7 @@ jobs:
           choco install go-task -y
 
       - name: Install Task (Darwin)
-        if: matrix.os == 'darwin-latest'
+        if: matrix.os == 'macos-latest'
         run: |
           brew install go-task
 
