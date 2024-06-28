@@ -55,6 +55,7 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         run: |
           sudo snap install task --classic
+          task tooling
 
       - name: Print the version
         run: |
