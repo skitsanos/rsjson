@@ -20,7 +20,7 @@ tasks:
           tar -xzf  "lua-5.4.6.tar.gz" -C "_tools"
           New-Item -Path "_tools\lua-5.4.6\lib\" -ItemType Directory -Force
           Copy-Item -Path "_tools\Lua\5.4\lua54.dll" -Destination "_tools\lua-5.4.6\lib\lua54.dll"
-          Copy-Item -Path "_tools\Lua\5.4\lua54.lib" -Destination "_tools\lua-5.4.6\lib\lua54.lib"
+          Copy-Item -Path "_tools\Lua\5.4\lua54.lib" -Destination "_tools\lua-5.4.6\lib\lua5.4.lib"
           '
 
   tooling-darwin:
