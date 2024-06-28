@@ -6,33 +6,82 @@ vars:
   DOCKER_TAG: openresty-rjson
 
 tasks:
-  build-luajit:
+  build-luajit-darwin:
     dir: rsjson-luajit
     cmds:
-      - echo "Building..."
+      - echo "Building LuaJIT version..."
       - cargo clean
       - cmd: |
           export LUAJIT_DIR=$(brew --prefix luajit)
           export LUAJIT_INCLUDE_DIR="$LUAJIT_DIR/include/luajit-2.1"
           cargo build --release --target-dir ../target-luajit
-        platforms:
-          - darwin
-  build-lua:
-    dir: rsjson-lua54
+      - cmd: test -f ../target-luajit/release/librsjson.dylib || (echo "Build failed" && exit 1)
+
+  build-luajit-linux:
+    dir: rsjson-luajit
     cmds:
-      - echo "Building..."
       - cargo clean
       - cmd: |
-          export LUAJIT_DIR=$(brew --prefix lua@5.4 )
-          export LUAJIT_INCLUDE_DIR="$LUAJIT_DIR/include/lua5.4"
+          sudo apt install -y libluajit-5.1-dev
+          export LUAJIT_DIR=/usr
+          export LUAJIT_INCLUDE_DIR="$LUAJIT_DIR/include/luajit-2.1"
+          cargo build --release --target-dir ../target-luajit
+
+  build-luajit-windows:
+    dir: rsjson-luajit
+    cmds:
+      - cargo clean
+      - cmd: |
+          set LUAJIT_DIR=C:\Program Files\LuaJIT
+          set LUAJIT_INCLUDE_DIR=%LUAJIT_DIR%\include\luajit-2.1
+          cargo build --release --target-dir ../target-luajit
+      - cmd: if not exist ..\target-luajit\release\rsjson.dll (echo Build failed && exit /b 1)
+
+  build-lua-darwin:
+    dir: rsjson-lua54
+    cmds:
+      - echo "Building Lua 5.4 version..."
+      - cargo clean
+      - cmd: |
+          export LUA_DIR=$(brew --prefix lua@5.4)
+          export LUA_INCLUDE_DIR="$LUA_DIR/include/lua5.4"
           cargo build --release --target-dir ../target-lua54
-        platforms:
-          - darwin
+      - cmd: test -f ../target-lua54/release/librsjson.dylib || (echo "Build failed" && exit 1)
+
+  build-lua-linux:
+    dir: rsjson-lua54
+    cmds:
+      - cargo clean
+      - cmd: |
+          sudo apt install -y liblua5.4-dev
+          export LUA_DIR=/usr/local
+          export LUA_INCLUDE_DIR="$LUA_DIR/include/lua5.4"
+          cargo build --release       - cmd: test -f ../target-lua54/release/librsjson.so || (echo "Build failed" && exit 1)
+
+  build-lua-windows:
+    dir: rsjson-lua54
+    cmds:
+      - cargo clean
+      - cmd: |
+          set LUA_DIR=C:\Program Files\Lua\5.4
+          set LUA_INCLUDE_DIR=%LUA_DIR%\include
+          cargo build --release --target-dir ../target-lua54
+      - cmd: if not exist ..\target-lua54\release\rsjson.dll (echo Build failed && exit /b 1
+
+  build-luajit:
+    cmds:
+      - echo "Building LuaJIT version..."
+      - task: build-luajit-{{OS}}
+
+  build-lua:
+    cmds:
+      - echo "Building Lua 5.4 version..."
+      - task: build-lua-{{OS}}
 
   build:
     cmds:
-      - task build-luajit
-      - task build-lua
+      - task: build-luajit
+      - task: build-lua
 
   test-luajit:
     dir: src-lua
@@ -41,7 +90,7 @@ tasks:
     cmds:
       - echo "Testing LuaJIT..."
       - luajit -e 'print("LuaJIT is working!")'
-      - echo "Testing LuaJIT with a rsjson..."
+      - echo "Testing LuaJIT with rsjson..."
       - luajit test.lua
 
   test-lua:
@@ -49,15 +98,29 @@ tasks:
     env:
       LUA_CPATH: ../target-lua54/release/lib?.dylib
     cmds:
-      - echo "Testing Lua..."
-      - lua -e 'print("Lua is working!")'
-      - echo "Testing Lua with a rsjson..."
+      - echo "Testing Lua 5.4..."
+      - lua -e 'print("Lua 5.4 is working!")'
+      - echo "Testing Lua 5.4 with rsjson..."
       - lua test.lua
 
   test:
     cmds:
-      - task test-luajit
-      - task test-lua
+      - task: test-luajit
+      - task: test-lua
+
+  clean:
+    cmds:
+      - rm -rf target-luajit target-lua54
+      - echo "All build artifacts removed."
+
+  version:
+    cmds:
+      - echo "Current version:"
+      - grep version rsjson-luajit/Cargo.toml | head -n 1
+      - echo "Enter new version:"
+      - read -p "> " NEW_VERSION
+      - sed -i '' "s/^version = .*/version = \"$NEW_VERSION\"/" rsjson-luajit/Cargo.toml rsjson-lua54/Cargo.toml
+      - echo "Version updated to $NEW_VERSION"
 
   docker-build:
     dir: docker
@@ -70,3 +133,22 @@ tasks:
     dir: docker
     cmds:
       - docker run -it --rm -d -p "8000:80" {{.DOCKER_TAG}}
+
+  help:
+    cmds:
+      - echo "Available tasks:"
+      - cmd: |
+          echo "  build-luajit : Build the LuaJIT version"
+          echo "  build-lua    : Build the Lua 5.4 version"
+          echo "  build        : Build both versions"
+          echo "  test-luajit  : Test the LuaJIT version"
+          echo "  test-lua     : Test the Lua 5.4 version"
+          echo "  test         : Run all tests"
+          echo "  clean        : Remove all build artifacts"
+          echo "  version      : Update the version number"
+          echo "  docker-build : Build the Docker image"
+          echo "  docker-run   : Run the Docker container"
+
+  default:
+    cmds:
+      - task: help
