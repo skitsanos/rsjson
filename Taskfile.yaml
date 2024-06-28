@@ -84,7 +84,7 @@ tasks:
       - task: build-luajit
       - task: build-lua
 
-  test-luajit:
+  test-luajit-darwin:
     dir: src-lua
     env:
       LUA_CPATH: ../target-luajit/release/lib?.dylib
@@ -94,7 +94,17 @@ tasks:
       - echo "Testing LuaJIT with rsjson..."
       - luajit test.lua
 
-  test-lua:
+  test-luajit-linux:
+    dir: src-lua
+    env:
+      LUA_CPATH: ../target-luajit/release/lib?.so
+    cmds:
+      - echo "Testing LuaJIT..."
+      - luajit -e 'print("LuaJIT is working!")'
+      - echo "Testing LuaJIT with rsjson..."
+      - luajit test.lua
+
+  test-lua-darwin:
     dir: src-lua
     env:
       LUA_CPATH: ../target-lua54/release/lib?.dylib
@@ -104,10 +114,20 @@ tasks:
       - echo "Testing Lua 5.4 with rsjson..."
       - lua test.lua
 
+  test-lua-linux:
+    dir: src-lua
+    env:
+      LUA_CPATH: ../target-lua54/release/lib?.so
+    cmds:
+      - echo "Testing Lua 5.4..."
+      - lua -e 'print("Lua 5.4 is working!")'
+      - echo "Testing Lua 5.4 with rsjson..."
+      - lua test.lua
+
   test:
     cmds:
-      - task: test-luajit
-      - task: test-lua
+      - task: test-luajit-{{OS}}
+      - task: test-lua-{{OS}}
 
   clean:
     cmds:
