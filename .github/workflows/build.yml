@@ -2,8 +2,8 @@ name: Build rsjson lib
 
 on:
   push:
-    tags:
-      - 'v*.*.*'
+#    tags:
+#      - 'v*.*.*'
     branches:
       - master
 
@@ -70,7 +70,7 @@ jobs:
           echo "$(task --version)"
 
       - name: Build
-        run: cargo build --release
+        run: task build
 
       - name: Upload Artifact (Linux)
         if: matrix.os == 'ubuntu-latest'
