@@ -14,4 +14,4 @@ mlua = { version = "0.10.0", features = ["module"] }
 version = "1.0"
 
 [workspace.dependencies.bindgen]
-version = "0.70.0"
+version = "0.71.0"
