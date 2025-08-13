@@ -135,14 +135,11 @@ jobs:
         if: matrix.os == 'windows-latest'
         shell: pwsh
         run: |
-          # Install Lua runtime via chocolatey
-          choco install lua
-          
-          # Download Lua source with headers since chocolatey package doesn't include them
+          # Download Lua source since we need both headers and to build lua.lib
           $luaVersion = "5.4.7"
           $luaUrl = "https://www.lua.org/ftp/lua-$luaVersion.tar.gz"
           $luaDir = "C:\tools\lua"
-          $includeDir = "$luaDir\lua-$luaVersion\src"
+          $srcDir = "$luaDir\lua-$luaVersion\src"
           
           # Create directory and download
           New-Item -ItemType Directory -Force -Path $luaDir
@@ -156,19 +153,62 @@ jobs:
           tar -xzf "lua-$luaVersion.tar.gz"
           
           # Verify headers exist
-          if (-not (Test-Path "$includeDir\lua.h")) {
+          if (-not (Test-Path "$srcDir\lua.h")) {
             Write-Error "Failed to extract Lua headers from source"
             exit 1
           }
           
-          # We'll use chocolatey for runtime and extracted source for headers
-          $luaPath = "C:\ProgramData\chocolatey\lib\lua\tools"
+          # Build lua.lib using MSVC
+          Write-Host "Building lua.lib from source..."
+          cd $srcDir
           
-          Write-Host "Using LUA_DIR: $luaPath"
-          Write-Host "Using LUA_INCLUDE_DIR: $includeDir"
+          # Compile Lua core objects
+          $coreFiles = @(
+            "lapi.c", "lcode.c", "lctype.c", "ldebug.c", "ldo.c", "ldump.c",
+            "lfunc.c", "lgc.c", "llex.c", "lmem.c", "lobject.c", "lopcodes.c",
+            "lparser.c", "lstate.c", "lstring.c", "ltable.c", "ltm.c",
+            "lundump.c", "lvm.c", "lzio.c"
+          )
           
-          echo "LUA_DIR=$luaPath" >> $env:GITHUB_ENV
-          echo "LUA_INCLUDE_DIR=$includeDir" >> $env:GITHUB_ENV
+          $libFiles = @(
+            "lauxlib.c", "lbaselib.c", "lcorolib.c", "ldblib.c", "liolib.c",
+            "lmathlib.c", "loslib.c", "lstrlib.c", "ltablib.c", "lutf8lib.c",
+            "loadlib.c", "linit.c"
+          )
+          
+          # Compile all source files to objects
+          $allFiles = $coreFiles + $libFiles
+          foreach ($file in $allFiles) {
+            Write-Host "Compiling $file..."
+            cl /c /O2 /W3 /DLUA_BUILD_AS_DLL $file
+            if ($LASTEXITCODE -ne 0) {
+              Write-Error "Failed to compile $file"
+              exit 1
+            }
+          }
+          
+          # Create lua.lib from object files
+          $objFiles = $allFiles | ForEach-Object { $_.Replace(".c", ".obj") }
+          Write-Host "Creating lua.lib..."
+          lib /OUT:lua.lib $objFiles
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "Failed to create lua.lib"
+            exit 1
+          }
+          
+          # Verify lua.lib was created
+          if (-not (Test-Path "lua.lib")) {
+            Write-Error "lua.lib was not created"
+            exit 1
+          }
+          
+          Write-Host "Successfully built lua.lib"
+          
+          Write-Host "Using LUA_DIR: $srcDir"
+          Write-Host "Using LUA_INCLUDE_DIR: $srcDir"
+          
+          echo "LUA_DIR=$srcDir" >> $env:GITHUB_ENV
+          echo "LUA_INCLUDE_DIR=$srcDir" >> $env:GITHUB_ENV
 
       - name: Build
         working-directory: rsjson
