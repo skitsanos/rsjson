@@ -42,7 +42,11 @@ fn main() {
         
         // Library naming varies by platform and package manager
         let lua_lib = if cfg!(target_os = "windows") {
-            "lua"  // Windows naming
+            if lua_dir.contains(".lua\\lib") {
+                "lua54"  // leafo/gh-actions-lua creates lua54.lib
+            } else {
+                "lua"   // Standard Windows naming
+            }
         } else if lua_dir.contains("/opt/homebrew") || lua_dir.contains("/usr/local/opt") {
             "lua"  // Homebrew naming
         } else if lua_dir.contains("/usr/lib/lua5.4") {
