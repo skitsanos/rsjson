@@ -211,14 +211,6 @@ jobs:
             Write-Host "Using LUA_DIR: $luaLibDir"
             Write-Host "Using LUA_INCLUDE_DIR: $luaIncludeDir"
             
-            # Show what .lib files actually exist in the detected directory
-            Write-Host "Checking for .lib files in ${luaLibDir}:"
-            Get-ChildItem "${luaLibDir}\*.lib" -ErrorAction SilentlyContinue | ForEach-Object { Write-Host "  $($_.FullName)" }
-            
-            # Also check the entire .lua directory structure
-            Write-Host "Full .lua directory structure:"
-            Get-ChildItem "D:\a\rsjson\rsjson\.lua" -Recurse -Include "*.lib","*.h" | ForEach-Object { Write-Host "  $($_.FullName)" }
-            
             echo "LUA_DIR=$luaLibDir" >> $env:GITHUB_ENV
             echo "LUA_INCLUDE_DIR=$luaIncludeDir" >> $env:GITHUB_ENV
           } else {
@@ -235,9 +227,9 @@ jobs:
         shell: pwsh
         run: |
           pwd
-          ls -la .
-          ls -la target/
-          ls -la target/release/
+          Get-ChildItem . | Format-Table -AutoSize
+          Get-ChildItem target/ | Format-Table -AutoSize
+          Get-ChildItem target/release/ | Format-Table -AutoSize
           if (Test-Path "target/release/rsjson.dll") {
             Write-Host "✅ rsjson.dll built successfully"
           } else {
