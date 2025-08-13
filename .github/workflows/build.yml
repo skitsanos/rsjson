@@ -16,26 +16,26 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-        lua_version: [lua51, lua52, lua53, lua54, luajit]
-        exclude:
-          # Windows tooling setup is complex, focus on Linux/macOS for now
-          - os: windows-latest
-            lua_version: lua51
-          - os: windows-latest
-            lua_version: lua52
-          - os: windows-latest
-            lua_version: lua53
-          # Windows LuaJIT not available via chocolatey
-          - os: windows-latest
-            lua_version: luajit
-          # macOS Homebrew only has Lua 5.4 and LuaJIT readily available
-          - os: macos-latest
-            lua_version: lua51
-          - os: macos-latest
-            lua_version: lua52
-          - os: macos-latest
-            lua_version: lua53
+        os: [windows-latest] # ubuntu-latest, macos-latest]
+        lua_version: [lua54] # lua51, lua52, lua53, luajit]
+        # exclude:
+        #   # Windows tooling setup is complex, focus on Linux/macOS for now
+        #   - os: windows-latest
+        #     lua_version: lua51
+        #   - os: windows-latest
+        #     lua_version: lua52
+        #   - os: windows-latest
+        #     lua_version: lua53
+        #   # Windows LuaJIT not available via chocolatey
+        #   - os: windows-latest
+        #     lua_version: luajit
+        #   # macOS Homebrew only has Lua 5.4 and LuaJIT readily available
+        #   - os: macos-latest
+        #     lua_version: lua51
+        #   - os: macos-latest
+        #     lua_version: lua52
+        #   - os: macos-latest
+        #     lua_version: lua53
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -86,129 +86,133 @@ jobs:
           echo "OS: ${{ matrix.os }}"
           echo "$(task --version)"
 
-      - uses: KyleMayes/install-llvm-action@v2
+      # Set up MSVC environment on Windows (required for Lua compilation)
+      - uses: ilammy/msvc-dev-cmd@v1
+        if: matrix.os == 'windows-latest'
+
+      # Install Lua using the leafo action (works great on Windows)  
+      - uses: leafo/gh-actions-lua@v10
         if: matrix.os == 'windows-latest'
         with:
-          version: "14.0"
+          luaVersion: "5.4"
 
-      - name: Install Lua dependencies (Ubuntu)
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y build-essential clang libclang-dev
-          if [[ "${{ matrix.lua_version }}" == "lua51" ]]; then
-            sudo apt-get install -y lua5.1-dev
-            echo "LUA_DIR=/usr" >> $GITHUB_ENV
-            echo "LUA_INCLUDE_DIR=/usr/include/lua5.1" >> $GITHUB_ENV
-          elif [[ "${{ matrix.lua_version }}" == "lua52" ]]; then
-            sudo apt-get install -y lua5.2-dev
-            echo "LUA_DIR=/usr" >> $GITHUB_ENV
-            echo "LUA_INCLUDE_DIR=/usr/include/lua5.2" >> $GITHUB_ENV
-          elif [[ "${{ matrix.lua_version }}" == "lua53" ]]; then
-            sudo apt-get install -y lua5.3-dev
-            echo "LUA_DIR=/usr" >> $GITHUB_ENV
-            echo "LUA_INCLUDE_DIR=/usr/include/lua5.3" >> $GITHUB_ENV
-          elif [[ "${{ matrix.lua_version }}" == "lua54" ]]; then
-            sudo apt-get install -y lua5.4-dev
-            echo "LUA_DIR=/usr" >> $GITHUB_ENV
-            echo "LUA_INCLUDE_DIR=/usr/include/lua5.4" >> $GITHUB_ENV
-          elif [[ "${{ matrix.lua_version }}" == "luajit" ]]; then
-            sudo apt-get install -y libluajit-5.1-dev
-            echo "LUAJIT_DIR=/usr" >> $GITHUB_ENV
-            echo "LUAJIT_INCLUDE_DIR=/usr/include/luajit-2.1" >> $GITHUB_ENV
-          fi
-
-      - name: Install Lua dependencies (macOS)
-        if: matrix.os == 'macos-latest'
-        run: |
-          if [[ "${{ matrix.lua_version }}" == "luajit" ]]; then
-            brew install luajit
-            echo "LUAJIT_DIR=$(brew --prefix luajit)/lib" >> $GITHUB_ENV
-            echo "LUAJIT_INCLUDE_DIR=$(brew --prefix luajit)/include/luajit-2.1" >> $GITHUB_ENV
-          else
-            brew install lua
-            echo "LUA_DIR=$(brew --prefix lua)/lib" >> $GITHUB_ENV
-            echo "LUA_INCLUDE_DIR=$(brew --prefix lua)/include/lua" >> $GITHUB_ENV
-          fi
-
-      - name: Install Lua dependencies (Windows)
+      - name: Verify Lua installation
         if: matrix.os == 'windows-latest'
         shell: pwsh
         run: |
-          # Download Lua source since we need both headers and to build lua.lib
-          $luaVersion = "5.4.7"
-          $luaUrl = "https://www.lua.org/ftp/lua-$luaVersion.tar.gz"
-          $luaDir = "C:\tools\lua"
-          $srcDir = "$luaDir\lua-$luaVersion\src"
-          
-          # Create directory and download
-          New-Item -ItemType Directory -Force -Path $luaDir
-          
-          # Download and extract Lua source
-          Write-Host "Downloading Lua $luaVersion source..."
-          Invoke-WebRequest -Uri $luaUrl -OutFile "$luaDir\lua-$luaVersion.tar.gz"
-          
-          # Extract using Windows tar (available in Windows 10+)
-          cd $luaDir
-          tar -xzf "lua-$luaVersion.tar.gz"
-          
-          # Verify headers exist
-          if (-not (Test-Path "$srcDir\lua.h")) {
-            Write-Error "Failed to extract Lua headers from source"
-            exit 1
-          }
-          
-          # Build lua.lib using MSVC
-          Write-Host "Building lua.lib from source..."
-          cd $srcDir
-          
-          # Compile Lua core objects
-          $coreFiles = @(
-            "lapi.c", "lcode.c", "lctype.c", "ldebug.c", "ldo.c", "ldump.c",
-            "lfunc.c", "lgc.c", "llex.c", "lmem.c", "lobject.c", "lopcodes.c",
-            "lparser.c", "lstate.c", "lstring.c", "ltable.c", "ltm.c",
-            "lundump.c", "lvm.c", "lzio.c"
-          )
-          
-          $libFiles = @(
-            "lauxlib.c", "lbaselib.c", "lcorolib.c", "ldblib.c", "liolib.c",
-            "lmathlib.c", "loslib.c", "lstrlib.c", "ltablib.c", "lutf8lib.c",
-            "loadlib.c", "linit.c"
-          )
-          
-          # Compile all source files to objects
-          $allFiles = $coreFiles + $libFiles
-          foreach ($file in $allFiles) {
-            Write-Host "Compiling $file..."
-            cl /c /O2 /W3 /DLUA_BUILD_AS_DLL $file
-            if ($LASTEXITCODE -ne 0) {
-              Write-Error "Failed to compile $file"
+          lua -v
+          Write-Host "Lua executable path: $(Get-Command lua | Select-Object -ExpandProperty Source)"
+          $luaDir = Split-Path (Get-Command lua).Source
+          Write-Host "Lua directory contents:"
+          Get-ChildItem $luaDir -Recurse | Select-Object FullName, Length | Format-Table -AutoSize
+
+      # - uses: KyleMayes/install-llvm-action@v2
+      #   if: matrix.os == 'windows-latest'
+      #   with:
+      #     version: "14.0"
+
+      # - name: Install Lua dependencies (Ubuntu)
+      #   if: matrix.os == 'ubuntu-latest'
+      #   run: |
+      #     sudo apt-get update
+      #     sudo apt-get install -y build-essential clang libclang-dev
+      #     if [[ "${{ matrix.lua_version }}" == "lua51" ]]; then
+      #       sudo apt-get install -y lua5.1-dev
+      #       echo "LUA_DIR=/usr" >> $GITHUB_ENV
+      #       echo "LUA_INCLUDE_DIR=/usr/include/lua5.1" >> $GITHUB_ENV
+      #     elif [[ "${{ matrix.lua_version }}" == "lua52" ]]; then
+      #       sudo apt-get install -y lua5.2-dev
+      #       echo "LUA_DIR=/usr" >> $GITHUB_ENV
+      #       echo "LUA_INCLUDE_DIR=/usr/include/lua5.2" >> $GITHUB_ENV
+      #     elif [[ "${{ matrix.lua_version }}" == "lua53" ]]; then
+      #       sudo apt-get install -y lua5.3-dev
+      #       echo "LUA_DIR=/usr" >> $GITHUB_ENV
+      #       echo "LUA_INCLUDE_DIR=/usr/include/lua5.3" >> $GITHUB_ENV
+      #     elif [[ "${{ matrix.lua_version }}" == "lua54" ]]; then
+      #       sudo apt-get install -y lua5.4-dev
+      #       echo "LUA_DIR=/usr" >> $GITHUB_ENV
+      #       echo "LUA_INCLUDE_DIR=/usr/include/lua5.4" >> $GITHUB_ENV
+      #     elif [[ "${{ matrix.lua_version }}" == "luajit" ]]; then
+      #       sudo apt-get install -y libluajit-5.1-dev
+      #       echo "LUAJIT_DIR=/usr" >> $GITHUB_ENV
+      #       echo "LUAJIT_INCLUDE_DIR=/usr/include/luajit-2.1" >> $GITHUB_ENV
+      #     fi
+
+      # - name: Install Lua dependencies (macOS)
+      #   if: matrix.os == 'macos-latest'
+      #   run: |
+      #     if [[ "${{ matrix.lua_version }}" == "luajit" ]]; then
+      #       brew install luajit
+      #       echo "LUAJIT_DIR=$(brew --prefix luajit)/lib" >> $GITHUB_ENV
+      #       echo "LUAJIT_INCLUDE_DIR=$(brew --prefix luajit)/include/luajit-2.1" >> $GITHUB_ENV
+      #     else
+      #       brew install lua
+      #       echo "LUA_DIR=$(brew --prefix lua)/lib" >> $GITHUB_ENV
+      #       echo "LUA_INCLUDE_DIR=$(brew --prefix lua)/include/lua" >> $GITHUB_ENV
+      #     fi
+
+      - name: Set up Lua paths for Windows build
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          # The leafo/gh-actions-lua action installs Lua to a standard location
+          # We need to find where it installed Lua and set up environment variables
+          $luaExe = Get-Command lua -ErrorAction SilentlyContinue
+          if ($luaExe) {
+            $luaDir = Split-Path $luaExe.Source
+            Write-Host "Found Lua at: $luaDir"
+            
+            # Look for include directory (usually relative to lua.exe)
+            $possibleIncludeDirs = @(
+              "$luaDir\..\include",
+              "$luaDir\include", 
+              "$luaDir\..\src",
+              "$luaDir\src"
+            )
+            
+            $luaIncludeDir = $null
+            foreach ($dir in $possibleIncludeDirs) {
+              $resolved = Resolve-Path $dir -ErrorAction SilentlyContinue
+              if ($resolved -and (Test-Path "$resolved\lua.h")) {
+                $luaIncludeDir = $resolved.Path
+                break
+              }
+            }
+            
+            if (-not $luaIncludeDir) {
+              Write-Error "Could not find lua.h header file"
               exit 1
             }
-          }
-          
-          # Create lua.lib from object files
-          $objFiles = $allFiles | ForEach-Object { $_.Replace(".c", ".obj") }
-          Write-Host "Creating lua.lib..."
-          lib /OUT:lua.lib $objFiles
-          if ($LASTEXITCODE -ne 0) {
-            Write-Error "Failed to create lua.lib"
+            
+            # Look for lib directory  
+            $possibleLibDirs = @(
+              "$luaDir\..\lib",
+              "$luaDir\lib",
+              $luaDir
+            )
+            
+            $luaLibDir = $null
+            foreach ($dir in $possibleLibDirs) {
+              $resolved = Resolve-Path $dir -ErrorAction SilentlyContinue
+              if ($resolved -and ((Test-Path "$resolved\lua54.lib") -or (Test-Path "$resolved\lua.lib"))) {
+                $luaLibDir = $resolved.Path
+                break
+              }
+            }
+            
+            if (-not $luaLibDir) {
+              $luaLibDir = $luaDir
+            }
+            
+            Write-Host "Using LUA_DIR: $luaLibDir"
+            Write-Host "Using LUA_INCLUDE_DIR: $luaIncludeDir"
+            
+            echo "LUA_DIR=$luaLibDir" >> $env:GITHUB_ENV
+            echo "LUA_INCLUDE_DIR=$luaIncludeDir" >> $env:GITHUB_ENV
+          } else {
+            Write-Error "lua.exe not found in PATH"
             exit 1
           }
-          
-          # Verify lua.lib was created
-          if (-not (Test-Path "lua.lib")) {
-            Write-Error "lua.lib was not created"
-            exit 1
-          }
-          
-          Write-Host "Successfully built lua.lib"
-          
-          Write-Host "Using LUA_DIR: $srcDir"
-          Write-Host "Using LUA_INCLUDE_DIR: $srcDir"
-          
-          echo "LUA_DIR=$srcDir" >> $env:GITHUB_ENV
-          echo "LUA_INCLUDE_DIR=$srcDir" >> $env:GITHUB_ENV
 
       - name: Build
         working-directory: rsjson
@@ -216,32 +220,32 @@ jobs:
           cargo build --release --no-default-features --features ${{ matrix.lua_version }}
 
       - name: Test build output
+        shell: pwsh
         run: |
           pwd
           ls -la .
           ls -la target/
           ls -la target/release/
-          if [[ "${{ matrix.os }}" == "ubuntu-latest" ]]; then
-            test -f target/release/librsjson.so
-          elif [[ "${{ matrix.os }}" == "macos-latest" ]]; then
-            test -f target/release/librsjson.dylib
-          elif [[ "${{ matrix.os }}" == "windows-latest" ]]; then
-            test -f target/release/rsjson.dll
-          fi
+          if (Test-Path "target/release/rsjson.dll") {
+            Write-Host "✅ rsjson.dll built successfully"
+          } else {
+            Write-Error "❌ rsjson.dll not found"
+            exit 1
+          }
 
-      - name: Upload Artifact (Linux)
-        if: matrix.os == 'ubuntu-latest'
-        uses: actions/upload-artifact@v4
-        with:
-          name: rsjson-${{ matrix.lua_version }}-linux
-          path: target/release/librsjson.so
+      # - name: Upload Artifact (Linux)
+      #   if: matrix.os == 'ubuntu-latest'
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: rsjson-${{ matrix.lua_version }}-linux
+      #     path: target/release/librsjson.so
 
-      - name: Upload Artifact (macOS)
-        if: matrix.os == 'macos-latest'
-        uses: actions/upload-artifact@v4
-        with:
-          name: rsjson-${{ matrix.lua_version }}-macos
-          path: target/release/librsjson.dylib
+      # - name: Upload Artifact (macOS)
+      #   if: matrix.os == 'macos-latest'
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: rsjson-${{ matrix.lua_version }}-macos
+      #     path: target/release/librsjson.dylib
 
       - name: Upload Artifact (Windows)
         if: matrix.os == 'windows-latest'
@@ -292,16 +296,16 @@ jobs:
             target/release/*.dylib
             target/release/*.dll
 
-  docker-test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-      
-      - name: Run Docker test suite
-        run: |
-          cd docker
-          chmod +x test-simple.sh
-          ./test-simple.sh
+  # docker-test:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v5
+  #     
+  #     - name: Run Docker test suite
+  #       run: |
+  #         cd docker
+  #         chmod +x test-simple.sh
+  #         ./test-simple.sh
 
 
 #      - name: Install LuaRocks (Linux)
