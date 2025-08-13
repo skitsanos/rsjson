@@ -55,8 +55,10 @@ fn main() {
             "lua"  // Alpine Linux naming in /usr/lib/lua5.4/
         } else if lua_dir.contains("/.lua/") {
             "lua"  // leafo/gh-actions-lua naming
+        } else if lua_dir.contains("/usr/lib") && std::path::Path::new("/usr/lib/lua5.4/liblua.a").exists() {
+            "lua"  // Alpine Linux system package naming (library in /usr/lib/lua5.4/)
         } else if lua_dir.contains("/usr/lib") {
-            "lua5.4"  // System package naming
+            "lua5.4"  // Standard system package naming
         } else {
             "lua5.4"  // Standard Unix naming for Lua 5.4
         };
@@ -175,7 +177,20 @@ fn main() {
         )
     };
 
+    // Add library search paths
     println!("cargo:rustc-link-search={lua_dir}");
+    
+    // Alpine Linux stores libraries in versioned subdirectories
+    if std::path::Path::new("/usr/lib/lua5.4/liblua.a").exists() {
+        println!("cargo:rustc-link-search=/usr/lib/lua5.4");
+    } else if std::path::Path::new("/usr/lib/lua5.3/liblua.a").exists() {
+        println!("cargo:rustc-link-search=/usr/lib/lua5.3");
+    } else if std::path::Path::new("/usr/lib/lua5.2/liblua.a").exists() {
+        println!("cargo:rustc-link-search=/usr/lib/lua5.2");
+    } else if std::path::Path::new("/usr/lib/lua5.1/liblua.a").exists() {
+        println!("cargo:rustc-link-search=/usr/lib/lua5.1");
+    }
+    
     println!("cargo:rustc-link-lib={lua_lib}");
 
     println!("cargo:rerun-if-changed=wrapper.c");
