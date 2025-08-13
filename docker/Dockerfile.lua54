@@ -37,10 +37,10 @@ RUN LUA_INCLUDE_DIR=/usr/include/lua5.4 LUA_DIR=/usr cargo build --release --no-
 
 # Debug: Check what files were created and current directory
 RUN pwd
-RUN ls -la . | head -10
-RUN find . -name "*rsjson*" -type f 2>/dev/null || echo "No rsjson files found"
-RUN find . -name "*.so" -type f 2>/dev/null || echo "No .so files found"
-RUN find . -name "target" -type d 2>/dev/null || echo "No target directory found"
+RUN env | grep -E "(CARGO|TARGET)" || echo "No CARGO/TARGET env vars"
+RUN find /build -name "target" -type d 2>/dev/null || echo "No target directory found in /build"
+RUN find /build -name "*.so" -type f 2>/dev/null || echo "No .so files found in /build"
+RUN find /tmp -name "*.so" -type f 2>/dev/null || echo "No .so files found in /tmp"
 
 # Runtime stage
 FROM alpine:latest AS runtime
