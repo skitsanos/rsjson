@@ -91,7 +91,7 @@ jobs:
         if: matrix.os == 'windows-latest'
 
       # Install Lua using the leafo action (works great on Windows)  
-      - uses: leafo/gh-actions-lua@v10
+      - uses: leafo/gh-actions-lua@v11
         if: matrix.os == 'windows-latest'
         with:
           luaVersion: "5.4"
@@ -184,11 +184,12 @@ jobs:
               exit 1
             }
             
-            # Look for lib directory  
+            # Look for lib directory - leafo action may put .lib files in various places
             $possibleLibDirs = @(
               "$luaDir\..\lib",
-              "$luaDir\lib",
-              $luaDir
+              "$luaDir\lib", 
+              $luaDir,
+              "$luaDir\.."  # Check parent directory too
             )
             
             $luaLibDir = $null
@@ -196,16 +197,27 @@ jobs:
               $resolved = Resolve-Path $dir -ErrorAction SilentlyContinue
               if ($resolved -and ((Test-Path "$resolved\lua54.lib") -or (Test-Path "$resolved\lua.lib"))) {
                 $luaLibDir = $resolved.Path
+                Write-Host "Found Lua library in: $luaLibDir"
                 break
               }
             }
             
             if (-not $luaLibDir) {
+              # Default to bin directory since that's where leafo might put everything
               $luaLibDir = $luaDir
+              Write-Host "Defaulting to bin directory for lib files: $luaLibDir"
             }
             
             Write-Host "Using LUA_DIR: $luaLibDir"
             Write-Host "Using LUA_INCLUDE_DIR: $luaIncludeDir"
+            
+            # Show what .lib files actually exist in the detected directory
+            Write-Host "Checking for .lib files in $luaLibDir:"
+            Get-ChildItem "$luaLibDir\*.lib" -ErrorAction SilentlyContinue | ForEach-Object { Write-Host "  $($_.FullName)" }
+            
+            # Also check the entire .lua directory structure
+            Write-Host "Full .lua directory structure:"
+            Get-ChildItem "D:\a\rsjson\rsjson\.lua" -Recurse -Include "*.lib","*.h" | ForEach-Object { Write-Host "  $($_.FullName)" }
             
             echo "LUA_DIR=$luaLibDir" >> $env:GITHUB_ENV
             echo "LUA_INCLUDE_DIR=$luaIncludeDir" >> $env:GITHUB_ENV
