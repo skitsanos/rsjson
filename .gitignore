@@ -4,3 +4,11 @@
 _tools/
 
 docker/app/lib/
+
+# Compiled libraries (should not be committed)
+*.so
+*.dylib  
+*.dll
+rsjson.so
+rsjson.dylib
+rsjson.dll

@@ -29,8 +29,18 @@ fi
 LUA_VERSION=$(lua -e "print(_VERSION)")
 echo "✅ Found $LUA_VERSION"
 
+# Create rsjson.so symlink for Lua if it doesn't exist (Lua expects .so extension)
+if [ -f "$PROJECT_ROOT/target/release/librsjson.dylib" ] && [ ! -f "$PROJECT_ROOT/target/release/rsjson.so" ]; then
+    ln -sf librsjson.dylib "$PROJECT_ROOT/target/release/rsjson.so"
+fi
+
+if [ -f "$PROJECT_ROOT/target/release/librsjson.so" ] && [ ! -f "$PROJECT_ROOT/target/release/rsjson.so" ]; then
+    ln -sf librsjson.so "$PROJECT_ROOT/target/release/rsjson.so"  
+fi
+
 # Set up library path for rsjson
 export LUA_CPATH="$PROJECT_ROOT/target/release/?.so;$PROJECT_ROOT/target/release/?.dylib;$LUA_CPATH"
+export LUA_PATH="$PROJECT_ROOT/src-lua/?.lua;;$LUA_PATH"
 
 # Check available JSON libraries
 echo
