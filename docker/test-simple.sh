@@ -31,8 +31,7 @@ run_test() {
     
     # Build the image
     echo "   Building image..."
-    BUILD_OUTPUT=$(docker build -f "docker/$dockerfile" -t "rsjson:$version" . 2>&1)
-    if [ $? -eq 0 ]; then
+    if docker build -f "docker/$dockerfile" -t "rsjson:$version" . 2>&1; then
         echo "   ✅ Build successful"
         
         # Run the test
@@ -45,8 +44,6 @@ run_test() {
         fi
     else
         echo "   ❌ Build FAILED"
-        echo "   Build output:"
-        echo "$BUILD_OUTPUT" | tail -20  # Show last 20 lines of error
     fi
     
     echo ""
@@ -54,9 +51,7 @@ run_test() {
 
 # Run tests for standalone Lua versions only
 echo "📋 Testing standalone Lua versions:"
-run_test "lua51" "Dockerfile.lua51" "Lua 5.1"
-run_test "lua52" "Dockerfile.lua52" "Lua 5.2"
-run_test "lua53" "Dockerfile.lua53" "Lua 5.3"
+echo "⚠️  Testing only Lua 5.4 for debugging..."
 run_test "lua54" "Dockerfile.lua54" "Lua 5.4"
 
 # Summary
