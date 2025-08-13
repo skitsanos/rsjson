@@ -90,6 +90,21 @@ jobs:
       - uses: ilammy/msvc-dev-cmd@v1
         if: matrix.os == 'windows-latest'
 
+      - name: Install Lua dependencies (Ubuntu)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential clang libclang-dev
+          if [[ "${{ matrix.lua_version }}" != "luajit" ]]; then
+            # For regular Lua, install system packages with runtime + dev
+            case "${{ matrix.lua_version }}" in
+              "lua51") sudo apt-get install -y lua5.1 liblua5.1-dev ;;
+              "lua52") sudo apt-get install -y lua5.2 liblua5.2-dev ;;
+              "lua53") sudo apt-get install -y lua5.3 liblua5.3-dev ;;
+              "lua54") sudo apt-get install -y lua5.4 liblua5.4-dev ;;
+            esac
+          fi
+
       # Install Lua using the leafo action (for LuaJIT on all platforms, and all versions on macOS/Windows)  
       - uses: leafo/gh-actions-lua@v11
         if: matrix.lua_version == 'luajit' || matrix.os != 'ubuntu-latest'
@@ -111,21 +126,6 @@ jobs:
             # For leafo installations
             lua -v
             echo "Lua executable path: $(which lua)"
-          fi
-          
-      - name: Install Lua dependencies (Ubuntu)
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y build-essential clang libclang-dev
-          if [[ "${{ matrix.lua_version }}" != "luajit" ]]; then
-            # For regular Lua, install system packages with runtime + dev
-            case "${{ matrix.lua_version }}" in
-              "lua51") sudo apt-get install -y lua5.1 liblua5.1-dev ;;
-              "lua52") sudo apt-get install -y lua5.2 liblua5.2-dev ;;
-              "lua53") sudo apt-get install -y lua5.3 liblua5.3-dev ;;
-              "lua54") sudo apt-get install -y lua5.4 liblua5.4-dev ;;
-            esac
           fi
 
       - name: Install Lua dependencies (macOS)
