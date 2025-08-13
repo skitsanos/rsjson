@@ -30,8 +30,8 @@ fn main() {
         )
     } else if cfg!(feature = "lua54") {
         let (default_dir, default_include) = if cfg!(target_os = "windows") {
-            // Windows defaults
-            ("C:\\ProgramData\\chocolatey\\lib\\lua\\tools", "C:\\ProgramData\\chocolatey\\lib\\lua\\tools\\include")
+            // Windows defaults - chocolatey for runtime, downloaded source for headers
+            ("C:\\ProgramData\\chocolatey\\lib\\lua\\tools", "C:\\tools\\lua\\lua-5.4.7\\src")
         } else if std::path::Path::new("/usr/include/lua5.4").exists() {
             ("/usr", "/usr/include/lua5.4")
         } else {
