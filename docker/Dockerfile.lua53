@@ -16,6 +16,7 @@ RUN apk add --no-cache \
 COPY Cargo.toml Cargo.lock /build/
 COPY rsjson/Cargo.toml /build/rsjson/
 COPY rsjson/build.rs /build/rsjson/
+COPY rsjson/wrapper.c /build/rsjson/
 
 # Create a dummy main.rs to enable dependency caching
 RUN mkdir -p /build/rsjson/src && echo 'fn main() {}' > /build/rsjson/src/main.rs
