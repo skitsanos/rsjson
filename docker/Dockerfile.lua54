@@ -1,4 +1,5 @@
-FROM alpine:latest
+# Multi-stage build for Lua 5.4
+FROM alpine:latest AS builder
 LABEL authors="skitsanos"
 LABEL lua_version="5.4"
 
@@ -9,24 +10,43 @@ RUN apk add --no-cache \
     cargo \
     clang \
     clang-dev \
-    lua5.4-dev \
-    lua5.4 \
-    && mkdir -p /app/lib
+    lua5.4-dev
 
-# Copy source code and build rsjson
-COPY . /build
+# Copy only Cargo files first to leverage Docker cache
+COPY Cargo.toml Cargo.lock /build/
+COPY rsjson/Cargo.toml /build/rsjson/
+COPY rsjson/build.rs /build/rsjson/
+
+# Create a dummy main.rs to enable dependency caching
+RUN mkdir -p /build/rsjson/src && echo 'fn main() {}' > /build/rsjson/src/main.rs
+
 WORKDIR /build/rsjson
 
-# Build rsjson for Lua 5.4
-RUN LUA_INCLUDE_DIR=/usr/include/lua5.4 LUA_DIR=/usr cargo build --release --no-default-features --features lua54 \
-    && cp target/release/librsjson.so /app/lib/ \
-    && ln -s /app/lib/librsjson.so /app/lib/rsjson.so \
-    && rm -rf /build
+# Build dependencies (this layer will be cached)
+RUN LUA_INCLUDE_DIR=/usr/include/lua5.4 LUA_DIR=/usr cargo build --release --no-default-features --features lua54 || true
 
-# Clean up build dependencies to reduce image size (keep libgcc for runtime)
-RUN apk add --no-cache libgcc \
-    && apk del build-base rust cargo clang clang-dev lua5.4-dev
+# Remove dummy main.rs
+RUN rm -rf /build/rsjson/src
 
+# Copy actual source code
+COPY rsjson/src /build/rsjson/src
+
+# Build the actual project
+RUN LUA_INCLUDE_DIR=/usr/include/lua5.4 LUA_DIR=/usr cargo build --release --no-default-features --features lua54
+
+# Runtime stage
+FROM alpine:latest AS runtime
+LABEL authors="skitsanos"
+LABEL lua_version="5.4"
+
+# Install runtime dependencies
+RUN apk add --no-cache libgcc lua5.4 && mkdir -p /app/lib
+
+# Copy built library from builder stage
+COPY --from=builder /build/rsjson/target/release/librsjson.so /app/lib/
+RUN ln -s /app/lib/librsjson.so /app/lib/rsjson.so
+
+# Copy test script
 COPY docker/app/test.lua /app/
 
 # Set up Lua package path to find rsjson
