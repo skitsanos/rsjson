@@ -173,8 +173,8 @@ jobs:
           name: rsjson-${{ matrix.lua_version }}-windows
           path: target/release/rsjson.dll
 
-      - name: Install LuaRocks and build rockspec
-        if: matrix.lua_version == 'lua54'  # Only build rockspec once per OS with default Lua version
+      - name: Install LuaRocks and build rockspec (Linux/macOS)
+        if: matrix.lua_version == 'lua54' && matrix.os != 'windows-latest'
         run: |
           if [[ "${{ matrix.os }}" == "ubuntu-latest" ]]; then
             sudo apt update
@@ -185,11 +185,15 @@ jobs:
             brew install luarocks
             sed "s/{{VERSION}}/${{ env.ROCKS_VERSION }}/g" rsjson-template.rockspec > rsjson-${{ env.ROCKS_VERSION }}.rockspec
             luarocks make --pack-binary-rock rsjson-${{ env.ROCKS_VERSION }}.rockspec
-          elif [[ "${{ matrix.os }}" == "windows-latest" ]]; then
-            choco install luarocks
-            (Get-Content rsjson-template.rockspec) -replace '{{VERSION}}', $env:ROCKS_VERSION | Set-Content rsjson-${{ env.ROCKS_VERSION }}.rockspec
-            luarocks make --pack-binary-rock rsjson-${{ env.ROCKS_VERSION }}.rockspec
           fi
+
+      - name: Install LuaRocks and build rockspec (Windows)
+        if: matrix.lua_version == 'lua54' && matrix.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          choco install luarocks
+          (Get-Content rsjson-template.rockspec) -replace '{{VERSION}}', $env:ROCKS_VERSION | Set-Content rsjson-${{ env.ROCKS_VERSION }}.rockspec
+          luarocks make --pack-binary-rock rsjson-${{ env.ROCKS_VERSION }}.rockspec
 
       - name: Upload LuaRocks Package
         if: matrix.lua_version == 'lua54'
