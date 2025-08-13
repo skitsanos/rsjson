@@ -139,8 +139,10 @@ jobs:
           cargo build --release --no-default-features --features ${{ matrix.lua_version }}
 
       - name: Test build output
-        working-directory: rsjson
         run: |
+          pwd
+          ls -la .
+          ls -la target/
           ls -la target/release/
           if [[ "${{ matrix.os }}" == "ubuntu-latest" ]]; then
             test -f target/release/librsjson.so
@@ -155,21 +157,21 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: rsjson-${{ matrix.lua_version }}-linux
-          path: rsjson/target/release/librsjson.so
+          path: target/release/librsjson.so
 
       - name: Upload Artifact (macOS)
         if: matrix.os == 'macos-latest'
         uses: actions/upload-artifact@v4
         with:
           name: rsjson-${{ matrix.lua_version }}-macos
-          path: rsjson/target/release/librsjson.dylib
+          path: target/release/librsjson.dylib
 
       - name: Upload Artifact (Windows)
         if: matrix.os == 'windows-latest'
         uses: actions/upload-artifact@v4
         with:
           name: rsjson-${{ matrix.lua_version }}-windows
-          path: rsjson/target/release/rsjson.dll
+          path: target/release/rsjson.dll
 
       - name: Install LuaRocks and build rockspec
         if: matrix.lua_version == 'lua54'  # Only build rockspec once per OS with default Lua version
@@ -205,9 +207,9 @@ jobs:
           tag_name: ${{ env.TAG_NAME }}
           files: |
             rsjson-${{ env.ROCKS_VERSION }}.*.rock
-            rsjson/target/release/*.so
-            rsjson/target/release/*.dylib
-            rsjson/target/release/*.dll
+            target/release/*.so
+            target/release/*.dylib
+            target/release/*.dll
 
   docker-test:
     runs-on: ubuntu-latest
