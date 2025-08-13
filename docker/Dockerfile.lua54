@@ -35,6 +35,10 @@ COPY rsjson/src /build/rsjson/src
 # Build the actual project
 RUN LUA_INCLUDE_DIR=/usr/include/lua5.4 LUA_DIR=/usr cargo build --release --no-default-features --features lua54
 
+# Debug: Check what files were created
+RUN ls -la target/release/ | grep -E '\.(so|dylib|dll)$' || echo "No shared libraries found"
+RUN find target/release -name "*rsjson*" -type f
+
 # Runtime stage
 FROM alpine:latest AS runtime
 LABEL authors="skitsanos"
