@@ -378,9 +378,8 @@ jobs:
       - name: Run Docker test suite
         timeout-minutes: 10
         run: |
-          cd docker
-          chmod +x test-simple.sh
-          ./test-simple.sh
+          chmod +x docker/test-simple.sh
+          ./docker/test-simple.sh
 
 
 #      - name: Install LuaRocks (Linux)

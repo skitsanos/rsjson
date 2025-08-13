@@ -10,6 +10,13 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 cd "$PROJECT_ROOT"
 
+echo "🔍 Debug info:"
+echo "   Script dir: $SCRIPT_DIR"
+echo "   Project root: $PROJECT_ROOT"
+echo "   Current working dir: $(pwd)"
+echo "   Cargo.lock exists: $(test -f Cargo.lock && echo "YES" || echo "NO")"
+echo ""
+
 echo "🚀 RSJSON Simple Test Suite"
 echo "Working directory: $(pwd)"
 echo ""
@@ -31,6 +38,7 @@ run_test() {
     
     # Build the image
     echo "   Building image..."
+    echo "   Docker command: docker build -f docker/$dockerfile -t rsjson:$version ."
     if docker build -f "docker/$dockerfile" -t "rsjson:$version" . 2>&1; then
         echo "   ✅ Build successful"
         
