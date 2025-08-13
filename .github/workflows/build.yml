@@ -189,6 +189,12 @@ jobs:
             echo "LUAJIT_DIR=$LUA_LIB_DIR" >> $GITHUB_ENV
             echo "LUAJIT_INCLUDE_DIR=$LUA_INCLUDE_DIR" >> $GITHUB_ENV
           fi
+          
+          # Debug: Show library files for Linux builds to understand PIC issue
+          if [[ "${{ matrix.os }}" == "ubuntu-latest" ]]; then
+            echo "Debug: Library files in $LUA_LIB_DIR:"
+            ls -la "$LUA_LIB_DIR"/ 2>/dev/null || echo "Could not list $LUA_LIB_DIR"
+          fi
 
       - name: Set up Lua paths (Windows)
         if: matrix.os == 'windows-latest'
