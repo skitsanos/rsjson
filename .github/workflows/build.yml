@@ -88,14 +88,24 @@ jobs:
           sudo apt-get install -y build-essential clang libclang-dev
           if [[ "${{ matrix.lua_version }}" == "lua51" ]]; then
             sudo apt-get install -y lua5.1-dev
+            echo "LUA_DIR=/usr" >> $GITHUB_ENV
+            echo "LUA_INCLUDE_DIR=/usr/include/lua5.1" >> $GITHUB_ENV
           elif [[ "${{ matrix.lua_version }}" == "lua52" ]]; then
             sudo apt-get install -y lua5.2-dev
+            echo "LUA_DIR=/usr" >> $GITHUB_ENV
+            echo "LUA_INCLUDE_DIR=/usr/include/lua5.2" >> $GITHUB_ENV
           elif [[ "${{ matrix.lua_version }}" == "lua53" ]]; then
             sudo apt-get install -y lua5.3-dev
+            echo "LUA_DIR=/usr" >> $GITHUB_ENV
+            echo "LUA_INCLUDE_DIR=/usr/include/lua5.3" >> $GITHUB_ENV
           elif [[ "${{ matrix.lua_version }}" == "lua54" ]]; then
             sudo apt-get install -y lua5.4-dev
+            echo "LUA_DIR=/usr" >> $GITHUB_ENV
+            echo "LUA_INCLUDE_DIR=/usr/include/lua5.4" >> $GITHUB_ENV
           elif [[ "${{ matrix.lua_version }}" == "luajit" ]]; then
             sudo apt-get install -y libluajit-5.1-dev
+            echo "LUAJIT_DIR=/usr" >> $GITHUB_ENV
+            echo "LUAJIT_INCLUDE_DIR=/usr/include/luajit-2.1" >> $GITHUB_ENV
           fi
 
       - name: Install Lua dependencies (macOS)
@@ -103,8 +113,12 @@ jobs:
         run: |
           if [[ "${{ matrix.lua_version }}" == "luajit" ]]; then
             brew install luajit
+            echo "LUAJIT_DIR=$(brew --prefix luajit)" >> $GITHUB_ENV
+            echo "LUAJIT_INCLUDE_DIR=$(brew --prefix luajit)/include/luajit-2.1" >> $GITHUB_ENV
           else
             brew install lua
+            echo "LUA_DIR=$(brew --prefix lua)" >> $GITHUB_ENV
+            echo "LUA_INCLUDE_DIR=$(brew --prefix lua)/include/lua" >> $GITHUB_ENV
           fi
 
       - name: Install Lua dependencies (Windows)
@@ -150,17 +164,6 @@ jobs:
           name: rsjson-${{ matrix.lua_version }}-windows
           path: rsjson/target/release/rsjson.dll
 
-  docker-test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-      
-      - name: Run Docker test suite
-        run: |
-          cd docker
-          chmod +x test-simple.sh
-          ./test-simple.sh
-
       - name: Install LuaRocks and build rockspec
         if: matrix.lua_version == 'lua54'  # Only build rockspec once per OS with default Lua version
         run: |
@@ -198,6 +201,18 @@ jobs:
             rsjson/target/release/*.so
             rsjson/target/release/*.dylib
             rsjson/target/release/*.dll
+
+  docker-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      
+      - name: Run Docker test suite
+        run: |
+          cd docker
+          chmod +x test-simple.sh
+          ./test-simple.sh
+
 
 #      - name: Install LuaRocks (Linux)
 #        if: matrix.os == 'ubuntu-latest'
