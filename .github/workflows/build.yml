@@ -26,6 +26,9 @@ jobs:
             lua_version: lua52
           - os: windows-latest
             lua_version: lua53
+          # Windows LuaJIT not available via chocolatey
+          - os: windows-latest
+            lua_version: luajit
           # macOS Homebrew only has Lua 5.4 and LuaJIT readily available
           - os: macos-latest
             lua_version: lua51
@@ -132,21 +135,12 @@ jobs:
         if: matrix.os == 'windows-latest'
         shell: pwsh
         run: |
-          if ("${{ matrix.lua_version }}" -eq "luajit") {
-            # Install LuaJIT from chocolatey
-            choco install luajit
-            # Set environment variables for LuaJIT
-            $luajitPath = "C:\ProgramData\chocolatey\lib\luajit\tools"
-            echo "LUAJIT_DIR=$luajitPath" >> $env:GITHUB_ENV
-            echo "LUAJIT_INCLUDE_DIR=$luajitPath\include" >> $env:GITHUB_ENV
-          } else {
-            # Install Lua
-            choco install lua
-            # Set environment variables for Lua
-            $luaPath = "C:\ProgramData\chocolatey\lib\lua\tools"
-            echo "LUA_DIR=$luaPath" >> $env:GITHUB_ENV
-            echo "LUA_INCLUDE_DIR=$luaPath\include" >> $env:GITHUB_ENV
-          }
+          # Install Lua (LuaJIT excluded from Windows matrix)
+          choco install lua
+          # Set environment variables for Lua
+          $luaPath = "C:\ProgramData\chocolatey\lib\lua\tools"
+          echo "LUA_DIR=$luaPath" >> $env:GITHUB_ENV
+          echo "LUA_INCLUDE_DIR=$luaPath\include" >> $env:GITHUB_ENV
 
       - name: Build
         working-directory: rsjson

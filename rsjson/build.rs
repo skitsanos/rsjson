@@ -4,7 +4,7 @@ use std::path::PathBuf;
 fn main() {
     let (lua_dir, lua_include_dir, lua_lib) = if cfg!(feature = "luajit") {
         let (default_dir, default_include) = if cfg!(target_os = "windows") {
-            // Windows defaults
+            // Windows defaults (LuaJIT not currently supported on Windows in CI)
             ("C:\\ProgramData\\chocolatey\\lib\\luajit\\tools", "C:\\ProgramData\\chocolatey\\lib\\luajit\\tools\\include")
         } else if std::path::Path::new("/usr/include/luajit-2.1").exists() {
             ("/usr", "/usr/include/luajit-2.1")
