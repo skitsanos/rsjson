@@ -188,6 +188,8 @@ jobs:
           if [[ "${{ matrix.lua_version }}" == "luajit" ]]; then
             echo "LUAJIT_DIR=$LUA_LIB_DIR" >> $GITHUB_ENV
             echo "LUAJIT_INCLUDE_DIR=$LUA_INCLUDE_DIR" >> $GITHUB_ENV
+            echo "Debug: LuaJIT library files in $LUA_LIB_DIR:"
+            ls -la "$LUA_LIB_DIR"/ 2>/dev/null || echo "Could not list $LUA_LIB_DIR"
           fi
 
       - name: Set up Lua paths (Windows)
