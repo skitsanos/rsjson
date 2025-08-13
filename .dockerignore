@@ -49,10 +49,7 @@ coverage/
 *.bak
 *.backup
 
-# Docker related
-Dockerfile*
-docker-compose.yml
-docker-compose.yaml
+# Docker related (excluding .dockerignore itself from the build context)
 .dockerignore
 
 # Task runner

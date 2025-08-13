@@ -15,7 +15,7 @@ RUN apk add --no-cache \
 
 # Copy source code and build rsjson
 COPY . /build
-WORKDIR /build
+WORKDIR /build/rsjson
 
 # Build rsjson for Lua 5.4 (default feature)
 RUN LUA_INCLUDE_DIR=/usr/include/lua5.4 LUA_DIR=/usr/lib/lua5.4 cargo build --release \
