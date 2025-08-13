@@ -35,13 +35,6 @@ COPY rsjson/src /build/rsjson/src
 # Build the actual project
 RUN LUA_INCLUDE_DIR=/usr/include/lua5.4 LUA_DIR=/usr cargo build --release --no-default-features --features lua54
 
-# Debug: Check what files were created and current directory
-RUN pwd
-RUN env | grep -E "(CARGO|TARGET)" || echo "No CARGO/TARGET env vars"
-RUN find /build -name "target" -type d 2>/dev/null || echo "No target directory found in /build"
-RUN find /build -name "*.so" -type f 2>/dev/null || echo "No .so files found in /build"
-RUN find /tmp -name "*.so" -type f 2>/dev/null || echo "No .so files found in /tmp"
-
 # Runtime stage
 FROM alpine:latest AS runtime
 LABEL authors="skitsanos"
@@ -51,7 +44,7 @@ LABEL lua_version="5.4"
 RUN apk add --no-cache libgcc lua5.4 && mkdir -p /app/lib
 
 # Copy built library from builder stage
-COPY --from=builder /build/rsjson/target/release/librsjson.so /app/lib/
+COPY --from=builder /build/target/release/librsjson.so /app/lib/
 RUN ln -s /app/lib/librsjson.so /app/lib/rsjson.so
 
 # Copy test script

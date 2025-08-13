@@ -44,7 +44,7 @@ LABEL lua_version="5.2"
 RUN apk add --no-cache libgcc lua5.2 && mkdir -p /app/lib
 
 # Copy built library from builder stage
-COPY --from=builder /build/rsjson/target/release/librsjson.so /app/lib/
+COPY --from=builder /build/target/release/librsjson.so /app/lib/
 RUN ln -s /app/lib/librsjson.so /app/lib/rsjson.so
 
 # Copy test script
