@@ -155,7 +155,7 @@ jobs:
           $includeDir = $null
           
           foreach ($path in $possiblePaths) {
-            if (Test-Path "$path\lua.exe" -or Test-Path "$path\bin\lua.exe") {
+            if ((Test-Path "$path\lua.exe") -or (Test-Path "$path\bin\lua.exe")) {
               $luaPath = $path
               break
             }
@@ -163,7 +163,7 @@ jobs:
           
           # Look for header files
           foreach ($path in $possiblePaths) {
-            if (Test-Path "$path\lua.h" -or Test-Path "$path\include\lua.h") {
+            if ((Test-Path "$path\lua.h") -or (Test-Path "$path\include\lua.h")) {
               $includeDir = if (Test-Path "$path\lua.h") { $path } else { "$path\include" }
               break
             }
