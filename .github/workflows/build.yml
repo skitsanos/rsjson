@@ -130,8 +130,23 @@ jobs:
 
       - name: Install Lua dependencies (Windows)
         if: matrix.os == 'windows-latest'
+        shell: pwsh
         run: |
-          choco install lua
+          if ("${{ matrix.lua_version }}" -eq "luajit") {
+            # Install LuaJIT from chocolatey
+            choco install luajit
+            # Set environment variables for LuaJIT
+            $luajitPath = "C:\ProgramData\chocolatey\lib\luajit\tools"
+            echo "LUAJIT_DIR=$luajitPath" >> $env:GITHUB_ENV
+            echo "LUAJIT_INCLUDE_DIR=$luajitPath\include" >> $env:GITHUB_ENV
+          } else {
+            # Install Lua
+            choco install lua
+            # Set environment variables for Lua
+            $luaPath = "C:\ProgramData\chocolatey\lib\lua\tools"
+            echo "LUA_DIR=$luaPath" >> $env:GITHUB_ENV
+            echo "LUA_INCLUDE_DIR=$luaPath\include" >> $env:GITHUB_ENV
+          }
 
       - name: Build
         working-directory: rsjson
