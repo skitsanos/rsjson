@@ -90,22 +90,43 @@ jobs:
       - uses: ilammy/msvc-dev-cmd@v1
         if: matrix.os == 'windows-latest'
 
-      # Install Lua using the leafo action (works great on all platforms)  
+      # Install Lua using the leafo action (for LuaJIT on all platforms, and all versions on macOS/Windows)  
       - uses: leafo/gh-actions-lua@v11
+        if: matrix.lua_version == 'luajit' || matrix.os != 'ubuntu-latest'
         with:
           luaVersion: ${{ matrix.lua_version == 'lua54' && '5.4' || matrix.lua_version == 'lua53' && '5.3' || matrix.lua_version == 'lua52' && '5.2' || matrix.lua_version == 'lua51' && '5.1' || matrix.lua_version == 'luajit' && 'luajit' || '5.4' }}
 
       - name: Verify Lua installation
         shell: bash
         run: |
-          lua -v
-          echo "Lua executable path: $(which lua)"
+          if [[ "${{ matrix.os }}" == "ubuntu-latest" && "${{ matrix.lua_version }}" != "luajit" ]]; then
+            # For system Lua installations, use versioned executable
+            case "${{ matrix.lua_version }}" in
+              "lua51") lua5.1 -v; echo "Lua executable: $(which lua5.1)" ;;
+              "lua52") lua5.2 -v; echo "Lua executable: $(which lua5.2)" ;;
+              "lua53") lua5.3 -v; echo "Lua executable: $(which lua5.3)" ;;
+              "lua54") lua5.4 -v; echo "Lua executable: $(which lua5.4)" ;;
+            esac
+          else
+            # For leafo installations
+            lua -v
+            echo "Lua executable path: $(which lua)"
+          fi
           
       - name: Install Lua dependencies (Ubuntu)
         if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential clang libclang-dev
+          if [[ "${{ matrix.lua_version }}" != "luajit" ]]; then
+            # For regular Lua, install system packages with runtime + dev
+            case "${{ matrix.lua_version }}" in
+              "lua51") sudo apt-get install -y lua5.1 liblua5.1-dev ;;
+              "lua52") sudo apt-get install -y lua5.2 liblua5.2-dev ;;
+              "lua53") sudo apt-get install -y lua5.3 liblua5.3-dev ;;
+              "lua54") sudo apt-get install -y lua5.4 liblua5.4-dev ;;
+            esac
+          fi
 
       - name: Install Lua dependencies (macOS)
         if: matrix.os == 'macos-latest'  
@@ -124,76 +145,87 @@ jobs:
         if: matrix.os != 'windows-latest'
         shell: bash
         run: |
-          # The leafo action installs to .lua directory structure
-          LUA_EXE=$(which lua)
-          LUA_BIN_DIR=$(dirname "$LUA_EXE")
-          echo "Found Lua at: $LUA_BIN_DIR"
-          
-          
-          # Look for include directory - leafo uses .lua/include structure
-          POSSIBLE_INCLUDE_DIRS=(
-            "$LUA_BIN_DIR/../include"
-            "$LUA_BIN_DIR/include"
-            "$(pwd)/.lua/include"
-            "$(pwd)/.lua/include/luajit-2.1"
-            "$HOME/.lua/include"
-            "$HOME/.lua/include/luajit-2.1"
-          )
-          
-          LUA_INCLUDE_DIR=""
-          for dir in "${POSSIBLE_INCLUDE_DIRS[@]}"; do
-            if [[ -f "$dir/lua.h" ]]; then
-              LUA_INCLUDE_DIR=$(realpath "$dir")
-              echo "Found headers at: $LUA_INCLUDE_DIR"
-              break
-            fi
-          done
-          
-          if [[ -z "$LUA_INCLUDE_DIR" ]]; then
-            echo "Error: Could not find lua.h"
-            echo "Searched in:"
+          if [[ "${{ matrix.os }}" == "ubuntu-latest" && "${{ matrix.lua_version }}" != "luajit" ]]; then
+            # For system Lua on Linux, use standard paths
+            case "${{ matrix.lua_version }}" in
+              "lua51") 
+                echo "LUA_DIR=/usr/lib/x86_64-linux-gnu" >> $GITHUB_ENV
+                echo "LUA_INCLUDE_DIR=/usr/include/lua5.1" >> $GITHUB_ENV
+                ;;
+              "lua52")
+                echo "LUA_DIR=/usr/lib/x86_64-linux-gnu" >> $GITHUB_ENV
+                echo "LUA_INCLUDE_DIR=/usr/include/lua5.2" >> $GITHUB_ENV
+                ;;
+              "lua53")
+                echo "LUA_DIR=/usr/lib/x86_64-linux-gnu" >> $GITHUB_ENV
+                echo "LUA_INCLUDE_DIR=/usr/include/lua5.3" >> $GITHUB_ENV
+                ;;
+              "lua54")
+                echo "LUA_DIR=/usr/lib/x86_64-linux-gnu" >> $GITHUB_ENV
+                echo "LUA_INCLUDE_DIR=/usr/include/lua5.4" >> $GITHUB_ENV
+                ;;
+            esac
+            echo "Using system Lua packages"
+          else
+            # For leafo action (LuaJIT on Linux, all versions on macOS/Windows)
+            LUA_EXE=$(which lua)
+            LUA_BIN_DIR=$(dirname "$LUA_EXE")
+            echo "Found Lua at: $LUA_BIN_DIR"
+            
+            # Look for include directory
+            POSSIBLE_INCLUDE_DIRS=(
+              "$LUA_BIN_DIR/../include"
+              "$LUA_BIN_DIR/include"
+              "$(pwd)/.lua/include"
+              "$(pwd)/.lua/include/luajit-2.1"
+              "$HOME/.lua/include"
+              "$HOME/.lua/include/luajit-2.1"
+            )
+            
+            LUA_INCLUDE_DIR=""
             for dir in "${POSSIBLE_INCLUDE_DIRS[@]}"; do
-              echo "  $dir"
+              if [[ -f "$dir/lua.h" ]]; then
+                LUA_INCLUDE_DIR=$(realpath "$dir")
+                echo "Found headers at: $LUA_INCLUDE_DIR"
+                break
+              fi
             done
-            exit 1
-          fi
-          
-          # Look for lib directory - leafo uses .lua/lib structure
-          POSSIBLE_LIB_DIRS=(
-            "$LUA_BIN_DIR/../lib"
-            "$LUA_BIN_DIR/lib"
-            "$(pwd)/.lua/lib"
-            "$HOME/.lua/lib"
-            "$LUA_BIN_DIR"
-          )
-          
-          LUA_LIB_DIR=""
-          for dir in "${POSSIBLE_LIB_DIRS[@]}"; do
-            if [[ -f "$dir/liblua.a" ]] || [[ -f "$dir/liblua54.a" ]] || [[ -f "$dir/liblua.dylib" ]] || [[ -f "$dir/liblua.so" ]] || [[ -f "$dir/libluajit.a" ]] || [[ -f "$dir/libluajit-5.1.a" ]]; then
-              LUA_LIB_DIR=$(realpath "$dir")
-              echo "Found libraries at: $LUA_LIB_DIR"
-              break
+            
+            if [[ -z "$LUA_INCLUDE_DIR" ]]; then
+              echo "Error: Could not find lua.h"
+              exit 1
             fi
-          done
-          
-          if [[ -z "$LUA_LIB_DIR" ]]; then
-            # Default to the bin directory parent
-            LUA_LIB_DIR=$(dirname "$LUA_BIN_DIR")
-            echo "Defaulting to: $LUA_LIB_DIR"
-          fi
-          
-          echo "LUA_DIR=$LUA_LIB_DIR" >> $GITHUB_ENV
-          echo "LUA_INCLUDE_DIR=$LUA_INCLUDE_DIR" >> $GITHUB_ENV
-          
-          if [[ "${{ matrix.lua_version }}" == "luajit" ]]; then
-            echo "LUAJIT_DIR=$LUA_LIB_DIR" >> $GITHUB_ENV
-            echo "LUAJIT_INCLUDE_DIR=$LUA_INCLUDE_DIR" >> $GITHUB_ENV
-          fi
-          
-          # Debug: Show library files for Linux builds to understand PIC issue
-          if [[ "${{ matrix.os }}" == "ubuntu-latest" ]]; then
-            echo "Debug: Library files in $LUA_LIB_DIR:"
-            ls -la "$LUA_LIB_DIR"/ 2>/dev/null || echo "Could not list $LUA_LIB_DIR"
+            
+            # Look for lib directory
+            POSSIBLE_LIB_DIRS=(
+              "$LUA_BIN_DIR/../lib"
+              "$LUA_BIN_DIR/lib"
+              "$(pwd)/.lua/lib"
+              "$HOME/.lua/lib"
+              "$LUA_BIN_DIR"
+            )
+            
+            LUA_LIB_DIR=""
+            for dir in "${POSSIBLE_LIB_DIRS[@]}"; do
+              if [[ -f "$dir/liblua.a" ]] || [[ -f "$dir/liblua54.a" ]] || [[ -f "$dir/liblua.dylib" ]] || [[ -f "$dir/liblua.so" ]] || [[ -f "$dir/libluajit.a" ]] || [[ -f "$dir/libluajit-5.1.a" ]] || [[ -f "$dir/libluajit-5.1.so" ]]; then
+                LUA_LIB_DIR=$(realpath "$dir")
+                echo "Found libraries at: $LUA_LIB_DIR"
+                break
+              fi
+            done
+            
+            if [[ -z "$LUA_LIB_DIR" ]]; then
+              LUA_LIB_DIR=$(dirname "$LUA_BIN_DIR")
+              echo "Defaulting to: $LUA_LIB_DIR"
+            fi
+            
+            echo "LUA_DIR=$LUA_LIB_DIR" >> $GITHUB_ENV
+            echo "LUA_INCLUDE_DIR=$LUA_INCLUDE_DIR" >> $GITHUB_ENV
+            
+            if [[ "${{ matrix.lua_version }}" == "luajit" ]]; then
+              echo "LUAJIT_DIR=$LUA_LIB_DIR" >> $GITHUB_ENV
+              echo "LUAJIT_INCLUDE_DIR=$LUA_INCLUDE_DIR" >> $GITHUB_ENV
+            fi
           fi
 
       - name: Set up Lua paths (Windows)
