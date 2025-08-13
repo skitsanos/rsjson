@@ -174,7 +174,7 @@ jobs:
           path: target/release/rsjson.dll
 
       - name: Install LuaRocks and build rockspec (Linux/macOS)
-        if: matrix.lua_version == 'lua54' && matrix.os != 'windows-latest'
+        if: matrix.lua_version == 'lua54' && matrix.os != 'windows-latest' && startsWith(github.ref, 'refs/tags/')
         run: |
           if [[ "${{ matrix.os }}" == "ubuntu-latest" ]]; then
             sudo apt update
@@ -188,7 +188,7 @@ jobs:
           fi
 
       - name: Install LuaRocks and build rockspec (Windows)
-        if: matrix.lua_version == 'lua54' && matrix.os == 'windows-latest'
+        if: matrix.lua_version == 'lua54' && matrix.os == 'windows-latest' && startsWith(github.ref, 'refs/tags/')
         shell: pwsh
         run: |
           choco install luarocks
@@ -196,7 +196,7 @@ jobs:
           luarocks make --pack-binary-rock rsjson-${{ env.ROCKS_VERSION }}.rockspec
 
       - name: Upload LuaRocks Package
-        if: matrix.lua_version == 'lua54'
+        if: matrix.lua_version == 'lua54' && startsWith(github.ref, 'refs/tags/')
         uses: actions/upload-artifact@v4
         with:
           name: rsjson-${{ matrix.os }}.rock
