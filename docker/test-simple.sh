@@ -31,7 +31,8 @@ run_test() {
     
     # Build the image
     echo "   Building image..."
-    if docker build -f "docker/$dockerfile" -t "rsjson:$version" . >/dev/null 2>&1; then
+    BUILD_OUTPUT=$(docker build -f "docker/$dockerfile" -t "rsjson:$version" . 2>&1)
+    if [ $? -eq 0 ]; then
         echo "   ✅ Build successful"
         
         # Run the test
@@ -44,6 +45,8 @@ run_test() {
         fi
     else
         echo "   ❌ Build FAILED"
+        echo "   Build output:"
+        echo "$BUILD_OUTPUT" | tail -20  # Show last 20 lines of error
     fi
     
     echo ""
