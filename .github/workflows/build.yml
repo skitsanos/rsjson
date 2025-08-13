@@ -26,6 +26,13 @@ jobs:
             lua_version: lua52
           - os: windows-latest
             lua_version: lua53
+          # macOS Homebrew only has Lua 5.4 and LuaJIT readily available
+          - os: macos-latest
+            lua_version: lua51
+          - os: macos-latest
+            lua_version: lua52
+          - os: macos-latest
+            lua_version: lua53
     runs-on: ${{ matrix.os }}
 
     steps:
