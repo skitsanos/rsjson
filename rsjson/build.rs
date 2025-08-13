@@ -19,6 +19,8 @@ fn main() {
             "luajit"  // Windows naming
         } else if luajit_dir.contains("/opt/homebrew") || luajit_dir.contains("/usr/local/opt") {
             "luajit-5.1"  // Homebrew naming
+        } else if luajit_dir.contains("/.lua/") {
+            "luajit"  // leafo/gh-actions-lua naming
         } else {
             "luajit-5.1"  // Standard Unix naming
         };
@@ -51,6 +53,8 @@ fn main() {
             "lua"  // Homebrew naming
         } else if lua_dir.contains("/usr/lib/lua5.4") {
             "lua"  // Alpine Linux naming in /usr/lib/lua5.4/
+        } else if lua_dir.contains("/.lua/") {
+            "lua"  // leafo/gh-actions-lua naming
         } else {
             "lua5.4"  // Standard Unix naming for Lua 5.4
         };
@@ -75,6 +79,8 @@ fn main() {
             "lua"  // Homebrew naming
         } else if lua_dir.contains("/usr/lib/lua5.3") {
             "lua"  // Alpine Linux naming in /usr/lib/lua5.3/
+        } else if lua_dir.contains("/.lua/") {
+            "lua"  // leafo/gh-actions-lua naming
         } else {
             "lua5.3"  // Standard naming for Lua 5.3
         };
@@ -98,6 +104,8 @@ fn main() {
             "lua"  // Homebrew naming
         } else if lua_dir.contains("/usr/lib/lua5.2") {
             "lua"  // Alpine Linux naming in /usr/lib/lua5.2/
+        } else if lua_dir.contains("/.lua/") {
+            "lua"  // leafo/gh-actions-lua naming
         } else {
             "lua5.2"  // Standard naming for Lua 5.2
         };
@@ -121,6 +129,8 @@ fn main() {
             "lua"  // Homebrew naming
         } else if lua_dir.contains("/usr/lib/lua5.1") {
             "lua"  // Alpine Linux naming in /usr/lib/lua5.1/
+        } else if lua_dir.contains("/.lua/") {
+            "lua"  // leafo/gh-actions-lua naming
         } else {
             "lua5.1"  // Standard naming for Lua 5.1
         };
@@ -145,6 +155,8 @@ fn main() {
             "lua"  // Homebrew naming
         } else if lua_dir.contains("/usr/lib/lua5.4") {
             "lua"  // Alpine Linux naming in /usr/lib/lua5.4/
+        } else if lua_dir.contains("/.lua/") {
+            "lua"  // leafo/gh-actions-lua naming
         } else {
             "lua5.4"  // Standard naming for Lua 5.4
         };

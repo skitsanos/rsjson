@@ -124,15 +124,17 @@ jobs:
         if: matrix.os != 'windows-latest'
         shell: bash
         run: |
-          # The leafo action installs Lua and we need to find the paths
+          # The leafo action installs to .lua directory structure
           LUA_EXE=$(which lua)
           LUA_BIN_DIR=$(dirname "$LUA_EXE")
           echo "Found Lua at: $LUA_BIN_DIR"
           
-          # Look for include directory
+          # Look for include directory - leafo uses .lua/include structure
           POSSIBLE_INCLUDE_DIRS=(
             "$LUA_BIN_DIR/../include"
             "$LUA_BIN_DIR/include"
+            "$(pwd)/.lua/include"
+            "$HOME/.lua/include"
           )
           
           LUA_INCLUDE_DIR=""
@@ -146,19 +148,25 @@ jobs:
           
           if [[ -z "$LUA_INCLUDE_DIR" ]]; then
             echo "Error: Could not find lua.h"
+            echo "Searched in:"
+            for dir in "${POSSIBLE_INCLUDE_DIRS[@]}"; do
+              echo "  $dir"
+            done
             exit 1
           fi
           
-          # Look for lib directory
+          # Look for lib directory - leafo uses .lua/lib structure
           POSSIBLE_LIB_DIRS=(
             "$LUA_BIN_DIR/../lib"
             "$LUA_BIN_DIR/lib"
+            "$(pwd)/.lua/lib"
+            "$HOME/.lua/lib"
             "$LUA_BIN_DIR"
           )
           
           LUA_LIB_DIR=""
           for dir in "${POSSIBLE_LIB_DIRS[@]}"; do
-            if [[ -f "$dir/liblua.a" ]] || [[ -f "$dir/liblua54.a" ]] || [[ -f "$dir/liblua.dylib" ]] || [[ -f "$dir/liblua.so" ]]; then
+            if [[ -f "$dir/liblua.a" ]] || [[ -f "$dir/liblua54.a" ]] || [[ -f "$dir/liblua.dylib" ]] || [[ -f "$dir/liblua.so" ]] || [[ -f "$dir/libluajit.a" ]] || [[ -f "$dir/libluajit-5.1.a" ]]; then
               LUA_LIB_DIR=$(realpath "$dir")
               echo "Found libraries at: $LUA_LIB_DIR"
               break
