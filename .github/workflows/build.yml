@@ -1,6 +1,10 @@
 name: Build rsjson lib
 
-on: push
+on: 
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
 
 env:
   CARGO_TERM_COLOR: always
@@ -12,8 +16,16 @@ jobs:
   build:
     strategy:
       matrix:
-        #os: [ubuntu-latest, macos-latest, windows-latest]
-        os: [ windows-latest ]
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        lua_version: [lua51, lua52, lua53, lua54, luajit]
+        exclude:
+          # Windows tooling setup is complex, focus on Linux/macOS for now
+          - os: windows-latest
+            lua_version: lua51
+          - os: windows-latest
+            lua_version: lua52
+          - os: windows-latest
+            lua_version: lua53
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -69,31 +81,123 @@ jobs:
         with:
           version: "14.0"
 
-      - name: Build
+      - name: Install Lua dependencies (Ubuntu)
+        if: matrix.os == 'ubuntu-latest'
         run: |
-          task tooling
-          task build-lua-windows
+          sudo apt-get update
+          sudo apt-get install -y build-essential clang libclang-dev
+          if [[ "${{ matrix.lua_version }}" == "lua51" ]]; then
+            sudo apt-get install -y lua5.1-dev
+          elif [[ "${{ matrix.lua_version }}" == "lua52" ]]; then
+            sudo apt-get install -y lua5.2-dev
+          elif [[ "${{ matrix.lua_version }}" == "lua53" ]]; then
+            sudo apt-get install -y lua5.3-dev
+          elif [[ "${{ matrix.lua_version }}" == "lua54" ]]; then
+            sudo apt-get install -y lua5.4-dev
+          elif [[ "${{ matrix.lua_version }}" == "luajit" ]]; then
+            sudo apt-get install -y libluajit-5.1-dev
+          fi
 
-#      - name: Upload Artifact (Linux)
-#        if: matrix.os == 'ubuntu-latest'
-#        uses: actions/upload-artifact@v4
-#        with:
-#          name: rsjson-linux
-#          path: target/release/librsjson.so
-#
-#      - name: Upload Artifact (macOS)
-#        if: matrix.os == 'macos-latest'
-#        uses: actions/upload-artifact@v4
-#        with:
-#          name: rsjson-macos
-#          path: target/release/librsjson.dylib
-#
-#      - name: Upload Artifact (Windows)
-#        if: matrix.os == 'windows-latest'
-#        uses: actions/upload-artifact@v4
-#        with:
-#          name: rsjson-windows
-#          path: target/release/rsjson.dll
+      - name: Install Lua dependencies (macOS)
+        if: matrix.os == 'macos-latest'
+        run: |
+          if [[ "${{ matrix.lua_version }}" == "luajit" ]]; then
+            brew install luajit
+          else
+            brew install lua
+          fi
+
+      - name: Install Lua dependencies (Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          choco install lua
+
+      - name: Build
+        working-directory: rsjson
+        run: |
+          cargo build --release --no-default-features --features ${{ matrix.lua_version }}
+
+      - name: Test build output
+        working-directory: rsjson
+        run: |
+          ls -la target/release/
+          if [[ "${{ matrix.os }}" == "ubuntu-latest" ]]; then
+            test -f target/release/librsjson.so
+          elif [[ "${{ matrix.os }}" == "macos-latest" ]]; then
+            test -f target/release/librsjson.dylib
+          elif [[ "${{ matrix.os }}" == "windows-latest" ]]; then
+            test -f target/release/rsjson.dll
+          fi
+
+      - name: Upload Artifact (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: rsjson-${{ matrix.lua_version }}-linux
+          path: rsjson/target/release/librsjson.so
+
+      - name: Upload Artifact (macOS)
+        if: matrix.os == 'macos-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: rsjson-${{ matrix.lua_version }}-macos
+          path: rsjson/target/release/librsjson.dylib
+
+      - name: Upload Artifact (Windows)
+        if: matrix.os == 'windows-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: rsjson-${{ matrix.lua_version }}-windows
+          path: rsjson/target/release/rsjson.dll
+
+  docker-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      
+      - name: Run Docker test suite
+        run: |
+          cd docker
+          chmod +x test-simple.sh
+          ./test-simple.sh
+
+      - name: Install LuaRocks and build rockspec
+        if: matrix.lua_version == 'lua54'  # Only build rockspec once per OS with default Lua version
+        run: |
+          if [[ "${{ matrix.os }}" == "ubuntu-latest" ]]; then
+            sudo apt update
+            sudo apt install -y luarocks
+            sed "s/{{VERSION}}/${{ env.ROCKS_VERSION }}/g" rsjson-template.rockspec > rsjson-${{ env.ROCKS_VERSION }}.rockspec
+            sudo luarocks make --pack-binary-rock rsjson-${{ env.ROCKS_VERSION }}.rockspec
+          elif [[ "${{ matrix.os }}" == "macos-latest" ]]; then
+            brew install luarocks
+            sed "s/{{VERSION}}/${{ env.ROCKS_VERSION }}/g" rsjson-template.rockspec > rsjson-${{ env.ROCKS_VERSION }}.rockspec
+            luarocks make --pack-binary-rock rsjson-${{ env.ROCKS_VERSION }}.rockspec
+          elif [[ "${{ matrix.os }}" == "windows-latest" ]]; then
+            choco install luarocks
+            (Get-Content rsjson-template.rockspec) -replace '{{VERSION}}', $env:ROCKS_VERSION | Set-Content rsjson-${{ env.ROCKS_VERSION }}.rockspec
+            luarocks make --pack-binary-rock rsjson-${{ env.ROCKS_VERSION }}.rockspec
+          fi
+
+      - name: Upload LuaRocks Package
+        if: matrix.lua_version == 'lua54'
+        uses: actions/upload-artifact@v4
+        with:
+          name: rsjson-${{ matrix.os }}.rock
+          path: rsjson-${{ env.ROCKS_VERSION }}.*.rock
+
+      - name: Release
+        if: startsWith(github.ref, 'refs/tags/') && matrix.lua_version == 'lua54'
+        uses: softprops/action-gh-release@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ env.TAG_NAME }}
+          files: |
+            rsjson-${{ env.ROCKS_VERSION }}.*.rock
+            rsjson/target/release/*.so
+            rsjson/target/release/*.dylib
+            rsjson/target/release/*.dll
 
 #      - name: Install LuaRocks (Linux)
 #        if: matrix.os == 'ubuntu-latest'

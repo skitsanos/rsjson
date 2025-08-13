@@ -1,4 +1,7 @@
---package.cpath = package.cpath .. ';../target/release/lib?.dylib'
+-- Add the compiled library to the package search path
+-- For Lua 5.4: cargo build --release
+-- For other versions: cargo build --release --no-default-features --features lua53
+-- package.cpath = package.cpath .. ';../target/release/lib?.dylib'
 
 local json = require("rsjson")
 

@@ -1,14 +1,13 @@
 [workspace]
 resolver = "2"
 members = [
-    "rsjson-luajit",
-    "rsjson-lua54"
+    "rsjson"
 ]
 
 [workspace.dependencies]
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-mlua = { version = "0.11.0", features = ["module"] }
+mlua = { version = "0.11.0", features = ["module"], default-features = false }
 
 [workspace.dependencies.cc]
 version = "1.0"

@@ -1,0 +1,38 @@
+FROM alpine:latest
+LABEL authors="skitsanos"
+LABEL lua_version="5.3"
+
+# Install build dependencies and Lua 5.3 development headers
+RUN apk add --no-cache \
+    build-base \
+    rust \
+    cargo \
+    clang \
+    clang-dev \
+    lua5.3-dev \
+    lua5.3 \
+    && mkdir -p /app/lib
+
+# Copy source code and build rsjson
+COPY . /build
+WORKDIR /build
+
+# Build rsjson for Lua 5.3
+RUN LUA_INCLUDE_DIR=/usr/include/lua5.3 LUA_DIR=/usr/lib/lua5.3 cargo build --release --no-default-features --features lua53 \
+    && cp target/release/librsjson.so /app/lib/ \
+    && ln -s /app/lib/librsjson.so /app/lib/rsjson.so \
+    && rm -rf /build
+
+# Clean up build dependencies to reduce image size (keep libgcc for runtime)
+RUN apk add --no-cache libgcc \
+    && apk del build-base rust cargo clang clang-dev lua5.3-dev
+
+COPY docker/app/test.lua /app/
+
+# Set up Lua package path to find rsjson
+ENV LUA_CPATH="/app/lib/?.so;;"
+
+WORKDIR /app
+
+# Run tests
+CMD ["lua5.3", "test.lua"]

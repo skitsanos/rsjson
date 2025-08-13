@@ -1,0 +1,38 @@
+FROM openresty/openresty:alpine
+LABEL authors="skitsanos"
+LABEL lua_version="luajit"
+
+# Install build dependencies and Lua development headers
+RUN apk add --no-cache \
+    curl \
+    jq \
+    libc6-compat \
+    build-base \
+    rust \
+    cargo \
+    clang \
+    clang-dev \
+    luajit-dev \
+    && mkdir -p /app/lib
+
+# Copy source code and build rsjson
+COPY . /build
+WORKDIR /build
+
+# Build rsjson for LuaJIT (since OpenResty uses LuaJIT)
+RUN LUAJIT_INCLUDE_DIR=/usr/include/luajit-2.1 LUAJIT_DIR=/usr/lib cargo build --release --no-default-features --features luajit \
+    && cp target/release/librsjson.so /usr/lib/ \
+    && cp target/release/librsjson.so /app/lib/ \
+    && ln -s /app/lib/librsjson.so /app/lib/rsjson.so \
+    && rm -rf /build
+
+# Clean up build dependencies to reduce image size (keep libgcc for runtime)
+RUN apk add --no-cache libgcc \
+    && apk del build-base rust cargo clang clang-dev luajit-dev curl
+
+COPY docker/nginx/conf/nginx.conf /usr/local/openresty/nginx/conf/nginx.conf
+COPY docker/app /app
+
+EXPOSE 80
+
+CMD ["/usr/local/openresty/bin/openresty", "-g", "daemon off;"]

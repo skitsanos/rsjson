@@ -1,0 +1,72 @@
+# Rust build artifacts
+target/
+**/target/
+Cargo.lock
+
+# Git
+.git/
+.gitignore
+
+# Documentation
+*.md
+docs/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+
+# Node.js (if any)
+node_modules/
+npm-debug.log*
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+
+# OS generated files
+Thumbs.db
+.DS_Store
+*.log
+
+# Development tools
+.env
+.env.*
+
+# Test artifacts
+coverage/
+*.coverage
+
+# Backup files
+*.bak
+*.backup
+
+# Docker related
+Dockerfile*
+docker-compose.yml
+docker-compose.yaml
+.dockerignore
+
+# Task runner
+Taskfile.yaml
+Taskfile.yml
+
+# Rust specific excludes for faster builds
+**/.rustc_info.json
+**/incremental/
+**/deps/
+**/.fingerprint/
+
+# Keep only what we need for Docker builds:
+# - rsjson/ source code
+# - src-lua/ Lua module
+# - docker/ configuration files
+# - Cargo.toml and Cargo.lock at workspace level

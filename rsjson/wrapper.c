@@ -1,5 +1,6 @@
 #ifdef USE_LUAJIT
-#include <luaj#else
+#include <luajit.h>
+#else
 #include <lua.h>
 #endif
 #include <lualib.h>

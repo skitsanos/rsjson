@@ -41,70 +41,59 @@ tasks:
       - task: tooling-{{OS}}
 
   build-luajit-darwin:
-    dir: rsjson-luajit
+    dir: rsjson
     cmds:
       - echo "Building LuaJIT version..."
       - cargo clean
       - cmd: |
           export LUAJIT_DIR=$(brew --prefix luajit)
           export LUAJIT_INCLUDE_DIR="$LUAJIT_DIR/include/luajit-2.1"
-          cargo build --release --target-dir ../target-luajit
-      - cmd: test -f ../target-luajit/release/librsjson.dylib || (echo "Build failed" && exit 1)
+          cargo build --release --no-default-features --features luajit
+      - cmd: test -f target/release/librsjson.dylib || (echo "Build failed" && exit 1)
 
   build-luajit-linux:
-    dir: rsjson-luajit
+    dir: rsjson
     cmds:
       - cargo clean
       - cmd: |
           export LUAJIT_DIR=/usr
           export LUAJIT_INCLUDE_DIR="$LUAJIT_DIR/include/luajit-2.1"
-          cargo build --release --target-dir ../target-luajit
+          cargo build --release --no-default-features --features luajit
 
   build-luajit-windows:
-    dir: rsjson-luajit
+    dir: rsjson
     env:
       LUAJIT_DIR: ..\_tools\luajit\LuaJIT-2.1\
       LUAJIT_INCLUDE_DIR: ..\_tools\luajit\LuaJIT-2.1\src
     cmds:
       - cargo clean
       - cmd: |
-          echo "%LUAJIT_DIR%"
-          echo "${env:LUAJIT_DIR}"
-          powershell -c '
-            #echo "${env:LUAJIT_DIR}"
-            cd "${env:LUAJIT_INCLUDE_DIR}"
-          '
-          
-          exit 1
-          #git clone https://luajit.org/git/luajit.git
-          set LUAJIT_DIR=luajit
-          set LUAJIT_INCLUDE_DIR=%LUAJIT_DIR%\src
-          cargo build --release --target-dir ../target-luajit
-      - cmd: if not exist ..\target-luajit\release\rsjson.dll (echo Build failed && exit /b 1)
+          cargo build --release --no-default-features --features luajit
+      - cmd: if not exist target\release\rsjson.dll (echo Build failed && exit /b 1)
 
   build-lua-darwin:
-    dir: rsjson-lua54
+    dir: rsjson
     cmds:
       - cargo clean
       - cmd: |
-          export LUA_DIR=$(brew --prefix lua@5.4)
-          export LUA_INCLUDE_DIR="$LUA_DIR/include/lua5.4"
-          cargo build --release --target-dir ../target-lua54
-      - cmd: test -f ../target-lua54/release/librsjson.dylib || (echo "Build failed" && exit 1)
+          export LUA_DIR=$(brew --prefix lua)
+          export LUA_INCLUDE_DIR="$LUA_DIR/include/lua"
+          cargo build --release --no-default-features --features lua54
+      - cmd: test -f target/release/librsjson.dylib || (echo "Build failed" && exit 1)
 
   build-lua-linux:
-    dir: rsjson-lua54
+    dir: rsjson
     cmds:
       - cargo clean
       - cmd: |
           sudo apt install -y liblua5.4-dev
           export LUA_DIR=/usr
           export LUA_INCLUDE_DIR="$LUA_DIR/include/lua5.4"
-          cargo build --release --target-dir ../target-lua54
-      - cmd: test -f ../target-lua54/release/librsjson.so || (echo "Build failed" && exit 1)
+          cargo build --release --no-default-features --features lua54
+      - cmd: test -f target/release/librsjson.so || (echo "Build failed" && exit 1)
 
   build-lua-windows:
-    dir: rsjson-lua54
+    dir: rsjson
     env:
       LUA_DIR: ..\_tools\Lua\5.4
       LUA_INCLUDE_DIR: ..\_tools\Lua\5.4\include
@@ -112,7 +101,7 @@ tasks:
       - cargo clean
       - cmd: |
           powershell -c '
-          cargo build --release --target-dir ../target-lua54
+          cargo build --release --no-default-features --features lua54
           '
 
   build-luajit:
@@ -133,7 +122,7 @@ tasks:
   test-luajit-darwin:
     dir: src-lua
     env:
-      LUA_CPATH: ../target-luajit/release/lib?.dylib
+      LUA_CPATH: ../rsjson/target/release/lib?.dylib
     cmds:
       - echo "Testing LuaJIT..."
       - luajit -e 'print("LuaJIT is working!")'
@@ -143,7 +132,7 @@ tasks:
   test-luajit-linux:
     dir: src-lua
     env:
-      LUA_CPATH: ../target-luajit/release/lib?.so
+      LUA_CPATH: ../rsjson/target/release/lib?.so
     cmds:
       - echo "Testing LuaJIT..."
       - luajit -e 'print("LuaJIT is working!")'
@@ -153,7 +142,7 @@ tasks:
   test-lua-darwin:
     dir: src-lua
     env:
-      LUA_CPATH: ../target-lua54/release/lib?.dylib
+      LUA_CPATH: ../rsjson/target/release/lib?.dylib
     cmds:
       - echo "Testing Lua 5.4..."
       - lua -e 'print("Lua 5.4 is working!")'
@@ -163,7 +152,7 @@ tasks:
   test-lua-linux:
     dir: src-lua
     env:
-      LUA_CPATH: ../target-lua54/release/lib?.so
+      LUA_CPATH: ../rsjson/target/release/lib?.so
     cmds:
       - echo "Testing Lua 5.4..."
       - lua -e 'print("Lua 5.4 is working!")'
@@ -178,23 +167,23 @@ tasks:
   benchmark:
     dir: src-lua
     env:
-      LUA_CPATH: ../target-lua54/release/lib?.dylib
+      LUA_CPATH: ../rsjson/target/release/lib?.dylib
     cmds:
-      - echo "Benchmarking LuaJIT..."
+      - echo "Benchmarking Lua..."
       - lua benchmark.lua
 
   clean:
     cmds:
-      - rm -rf target-luajit target-lua54
+      - rm -rf rsjson/target
       - echo "All build artifacts removed."
 
   version:
     cmds:
       - echo "Current version:"
-      - grep version rsjson-luajit/Cargo.toml | head -n 1
+      - grep version rsjson/Cargo.toml | head -n 1
       - echo "Enter new version:"
       - read -p "> " NEW_VERSION
-      - sed -i '' "s/^version = .*/version = \"$NEW_VERSION\"/" rsjson-luajit/Cargo.toml rsjson-lua54/Cargo.toml
+      - sed -i '' "s/^version = .*/version = \"$NEW_VERSION\"/" rsjson/Cargo.toml
       - echo "Version updated to $NEW_VERSION"
 
   docker-build:
@@ -202,7 +191,19 @@ tasks:
     cmds:
       - mkdir -p ./app/lib
       - cp ../src-lua/rsjson.lua ./app/lib/rsjson.lua
-      - docker build --progress plain -t {{.DOCKER_TAG}} .
+      - docker build --progress plain -t {{.DOCKER_TAG}} -f Dockerfile.luajit ..
+
+  docker-test:
+    dir: docker
+    cmds:
+      - chmod +x test-simple.sh
+      - ./test-simple.sh
+
+  docker-test-all:
+    dir: docker
+    cmds:
+      - chmod +x test-all.sh
+      - ./test-all.sh
 
   docker-run:
     dir: docker

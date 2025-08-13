@@ -32,6 +32,8 @@ local function benchmark(name, encode_func, decode_func, iterations)
 end
 
 -- Example usage with different libraries
+-- Build rsjson first: cargo build --release
+-- Or for specific Lua version: cargo build --release --no-default-features --features lua53
 local dkjson = require "dkjson"
 local rsjson = require "rsjson"
 

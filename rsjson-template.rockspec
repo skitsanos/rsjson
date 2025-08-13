@@ -19,7 +19,7 @@ build = {
   platforms = {
     unix = {
       build_command = [[
-        cp target/release/librsjson.so .
+        cp rsjson/target/release/librsjson.so .
       ]],
       install = {
         lua = {
@@ -32,7 +32,7 @@ build = {
     },
     macosx = {
       build_command = [[
-        cp target/release/librsjson.dylib .
+        cp rsjson/target/release/librsjson.dylib .
       ]],
       install = {
         lua = {
@@ -45,7 +45,7 @@ build = {
     },
     windows = {
       build_command = [[
-        copy target\\release\\rsjson.dll .
+        copy rsjson\\target\\release\\rsjson.dll .
       ]],
       install = {
         lua = {

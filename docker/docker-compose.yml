@@ -1,0 +1,98 @@
+version: '3.8'
+
+services:
+  # Lua 5.4 (default)
+  lua54:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.lua54
+    container_name: rsjson-lua54
+    environment:
+      - LUA_VERSION=5.4
+    volumes:
+      - ../src-lua:/workspace
+    command: ["sh", "-c", "echo '=== Testing Lua 5.4 ===' && lua5.4 test.lua && echo '=== Lua 5.4 Tests Complete ==='"]
+
+  # Lua 5.3
+  lua53:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.lua53
+    container_name: rsjson-lua53
+    environment:
+      - LUA_VERSION=5.3
+    volumes:
+      - ../src-lua:/workspace
+    command: ["sh", "-c", "echo '=== Testing Lua 5.3 ===' && lua5.3 test.lua && echo '=== Lua 5.3 Tests Complete ==='"]
+
+  # Lua 5.2
+  lua52:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.lua52
+    container_name: rsjson-lua52
+    environment:
+      - LUA_VERSION=5.2
+    volumes:
+      - ../src-lua:/workspace
+    command: ["sh", "-c", "echo '=== Testing Lua 5.2 ===' && lua5.2 test.lua && echo '=== Lua 5.2 Tests Complete ==='"]
+
+  # Lua 5.1
+  lua51:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.lua51
+    container_name: rsjson-lua51
+    environment:
+      - LUA_VERSION=5.1
+    volumes:
+      - ../src-lua:/workspace
+    command: ["sh", "-c", "echo '=== Testing Lua 5.1 ===' && lua5.1 test.lua && echo '=== Lua 5.1 Tests Complete ==='"]
+
+  # LuaJIT with OpenResty (web server)
+  luajit:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.luajit
+    container_name: rsjson-luajit
+    ports:
+      - "8080:80"
+    environment:
+      - LUA_VERSION=luajit
+    volumes:
+      - ../src-lua:/workspace
+    command: ["sh", "-c", "echo '=== Starting LuaJIT + OpenResty ===' && /usr/local/openresty/bin/openresty -g 'daemon off;'"]
+
+  # Test runner - runs all tests sequentially
+  test-all:
+    image: alpine:latest
+    container_name: rsjson-test-runner
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - .:/workspace
+    working_dir: /workspace
+    command: ["sh", "-c", "
+      echo '🚀 Starting RSJSON Multi-Version Test Suite' &&
+      echo '=============================================' &&
+      echo '' &&
+      echo '📋 Testing Order:' &&
+      echo '  1. Lua 5.1 (oldest)' &&
+      echo '  2. Lua 5.2' &&
+      echo '  3. Lua 5.3' &&
+      echo '  4. Lua 5.4 (default)' &&
+      echo '  5. LuaJIT (web test)' &&
+      echo '' &&
+      echo '⏱️  Starting tests...' &&
+      sleep 2
+    "]
+    depends_on:
+      - lua51
+      - lua52
+      - lua53
+      - lua54
+      - luajit
+
+# Docker Compose Networks
+networks:
+  default:
+    driver: bridge

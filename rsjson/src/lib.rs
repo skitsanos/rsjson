@@ -6,6 +6,7 @@ use serde_json::{Error as JsonError, Value as JsonValue};
 #[allow(non_camel_case_types)]
 #[allow(non_snake_case)]
 #[allow(dead_code)]
+#[allow(clippy::upper_case_acronyms)]
 mod bindings {
     include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 }
@@ -31,11 +32,13 @@ fn lua_value_to_json(value: LuaValue) -> Result<JsonValue, LuaError> {
         LuaValue::Nil => Ok(JsonValue::Null),
         LuaValue::Boolean(b) => Ok(JsonValue::Bool(b)),
         LuaValue::Integer(i) => Ok(JsonValue::Number(i.into())),
-        LuaValue::Number(n) => Ok(JsonValue::Number(serde_json::Number::from_f64(n).ok_or(LuaError::FromLuaConversionError {
-            from: "number",
-            to: "json",
-            message: Some("float is not finite".into()),
-        })?)),
+        LuaValue::Number(n) => Ok(JsonValue::Number(serde_json::Number::from_f64(n).ok_or(
+            LuaError::FromLuaConversionError {
+                from: "number",
+                to: "json".to_string(),
+                message: Some("float is not finite".into()),
+            },
+        )?)),
         LuaValue::String(s) => Ok(JsonValue::String(s.to_str()?.to_owned())),
         LuaValue::Table(t) => {
             let mut object = serde_json::Map::new();
@@ -54,7 +57,7 @@ fn lua_value_to_json(value: LuaValue) -> Result<JsonValue, LuaError> {
                         is_array = false;
                         let key = match k {
                             LuaValue::String(s) => s.to_str()?.to_owned(),
-                            _ => k.to_string()?,  // Use the ? operator here
+                            _ => k.to_string()?,
                         };
                         object.insert(key, lua_value_to_json(v)?);
                     }
@@ -69,13 +72,13 @@ fn lua_value_to_json(value: LuaValue) -> Result<JsonValue, LuaError> {
         }
         _ => Err(LuaError::FromLuaConversionError {
             from: value.type_name(),
-            to: "json",
+            to: "json".to_string(),
             message: None,
         }),
     }
 }
 
-fn json_to_lua_value<'lua>(lua: &'lua Lua, value: &JsonValue) -> Result<LuaValue<'lua>, LuaError> {
+fn json_to_lua_value(lua: &Lua, value: &JsonValue) -> Result<LuaValue, LuaError> {
     match value {
         JsonValue::Null => Ok(LuaValue::Nil),
         JsonValue::Bool(b) => Ok(LuaValue::Boolean(*b)),
@@ -87,7 +90,7 @@ fn json_to_lua_value<'lua>(lua: &'lua Lua, value: &JsonValue) -> Result<LuaValue
             } else {
                 Err(LuaError::FromLuaConversionError {
                     from: "json",
-                    to: "lua",
+                    to: "lua".to_string(),
                     message: Some("invalid number".into()),
                 })
             }
@@ -120,30 +123,45 @@ fn rsjson(lua: &Lua) -> LuaResult<LuaTable> {
 
     let exports = lua.create_table()?;
 
-    exports.set("parse", lua.create_function(|lua, input: String| {
-        let json_value = RsJson::parse(&input).map_err(LuaError::external)?;
-        json_to_lua_value(lua, &json_value)
-    })?)?;
+    exports.set(
+        "parse",
+        lua.create_function(|lua, input: String| {
+            let json_value = RsJson::parse(&input).map_err(LuaError::external)?;
+            json_to_lua_value(lua, &json_value)
+        })?,
+    )?;
 
-    exports.set("decode", lua.create_function(|lua, input: String| {
-        let json_value = RsJson::parse(&input).map_err(LuaError::external)?;
-        json_to_lua_value(lua, &json_value)
-    })?)?;
+    exports.set(
+        "decode",
+        lua.create_function(|lua, input: String| {
+            let json_value = RsJson::parse(&input).map_err(LuaError::external)?;
+            json_to_lua_value(lua, &json_value)
+        })?,
+    )?;
 
-    exports.set("stringify", lua.create_function(|_, value: LuaValue| {
-        let json_value = lua_value_to_json(value)?;
-        RsJson::stringify(&json_value).map_err(LuaError::external)
-    })?)?;
+    exports.set(
+        "stringify",
+        lua.create_function(|_, value: LuaValue| {
+            let json_value = lua_value_to_json(value)?;
+            RsJson::stringify(&json_value).map_err(LuaError::external)
+        })?,
+    )?;
 
-    exports.set("encode", lua.create_function(|_, value: LuaValue| {
-        let json_value = lua_value_to_json(value)?;
-        RsJson::stringify(&json_value).map_err(LuaError::external)
-    })?)?;
+    exports.set(
+        "encode",
+        lua.create_function(|_, value: LuaValue| {
+            let json_value = lua_value_to_json(value)?;
+            RsJson::stringify(&json_value).map_err(LuaError::external)
+        })?,
+    )?;
 
-    exports.set("stringify_pretty", lua.create_function(|_, value: LuaValue| {
-        let json_value = lua_value_to_json(value)?;
-        RsJson::stringify_pretty(&json_value).map_err(LuaError::external)
-    })?)?;
+    exports.set(
+        "stringify_pretty",
+        lua.create_function(|_, value: LuaValue| {
+            let json_value = lua_value_to_json(value)?;
+            RsJson::stringify_pretty(&json_value).map_err(LuaError::external)
+        })?,
+    )?;
 
     Ok(exports)
 }
