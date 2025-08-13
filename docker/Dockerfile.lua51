@@ -18,7 +18,7 @@ COPY . /build
 WORKDIR /build/rsjson
 
 # Build rsjson for Lua 5.1
-RUN LUA_INCLUDE_DIR=/usr/include LUA_DIR=/usr cargo build --release --no-default-features --features lua51 \
+RUN LUA_INCLUDE_DIR=/usr/include/lua5.1 LUA_DIR=/usr cargo build --release --no-default-features --features lua51 \
     && cp target/release/librsjson.so /app/lib/ \
     && ln -s /app/lib/librsjson.so /app/lib/rsjson.so \
     && rm -rf /build
