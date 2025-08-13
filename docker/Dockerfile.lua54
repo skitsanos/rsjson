@@ -32,6 +32,13 @@ RUN rm -rf /build/rsjson/src
 # Copy actual source code
 COPY rsjson/src /build/rsjson/src
 
+# Debug: Check what Lua libraries are available
+RUN find /usr -name "*lua*" -type f 2>/dev/null | grep -E '\.(a|so)$' | head -20 || echo "No Lua libraries found"
+
+# Debug: Check what's in common library paths
+RUN ls -la /usr/lib/ | grep lua || echo "No lua in /usr/lib/"
+RUN ls -la /usr/lib64/ 2>/dev/null | grep lua || echo "No lua in /usr/lib64/ or dir doesn't exist"
+
 # Build the actual project
 RUN LUA_INCLUDE_DIR=/usr/include/lua5.4 LUA_DIR=/usr cargo build --release --no-default-features --features lua54
 
