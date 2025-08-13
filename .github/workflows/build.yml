@@ -129,6 +129,13 @@ jobs:
           LUA_BIN_DIR=$(dirname "$LUA_EXE")
           echo "Found Lua at: $LUA_BIN_DIR"
           
+          # Debug: Show what's in the .lua directory structure
+          echo "Contents of .lua directory:"
+          find $(pwd)/.lua -type f -name "*.h" 2>/dev/null || true
+          find $(pwd)/.lua -name "include" -type d 2>/dev/null || true
+          echo "LuaJIT specific headers:"
+          find $(pwd)/.lua -name "luajit.h" -o -name "lauxlib.h" 2>/dev/null || true
+          
           # Look for include directory - leafo uses .lua/include structure
           POSSIBLE_INCLUDE_DIRS=(
             "$LUA_BIN_DIR/../include"
