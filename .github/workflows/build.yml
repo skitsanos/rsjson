@@ -135,12 +135,51 @@ jobs:
         if: matrix.os == 'windows-latest'
         shell: pwsh
         run: |
-          # Install Lua (LuaJIT excluded from Windows matrix)
+          # Install Lua via chocolatey and check what we actually get
           choco install lua
-          # Set environment variables for Lua
-          $luaPath = "C:\ProgramData\chocolatey\lib\lua\tools"
+          
+          # Let's see what chocolatey actually installed
+          $chocoLuaDir = "C:\ProgramData\chocolatey\lib\lua"
+          Write-Host "Contents of chocolatey lua directory:"
+          Get-ChildItem -Path $chocoLuaDir -Recurse | Select-Object FullName
+          
+          # Try to find lua headers in common locations
+          $possiblePaths = @(
+            "C:\ProgramData\chocolatey\lib\lua\tools",
+            "C:\ProgramData\chocolatey\lib\lua\tools\include", 
+            "C:\ProgramData\chocolatey\lib\lua\content",
+            "C:\ProgramData\chocolatey\lib\lua"
+          )
+          
+          $luaPath = $null
+          $includeDir = $null
+          
+          foreach ($path in $possiblePaths) {
+            if (Test-Path "$path\lua.exe" -or Test-Path "$path\bin\lua.exe") {
+              $luaPath = $path
+              break
+            }
+          }
+          
+          # Look for header files
+          foreach ($path in $possiblePaths) {
+            if (Test-Path "$path\lua.h" -or Test-Path "$path\include\lua.h") {
+              $includeDir = if (Test-Path "$path\lua.h") { $path } else { "$path\include" }
+              break
+            }
+          }
+          
+          if (-not $luaPath) { $luaPath = "C:\ProgramData\chocolatey\lib\lua\tools" }
+          if (-not $includeDir) { 
+            Write-Error "Could not find lua.h header file. Chocolatey lua package may not include development headers."
+            exit 1
+          }
+          
+          Write-Host "Using LUA_DIR: $luaPath"
+          Write-Host "Using LUA_INCLUDE_DIR: $includeDir"
+          
           echo "LUA_DIR=$luaPath" >> $env:GITHUB_ENV
-          echo "LUA_INCLUDE_DIR=$luaPath\include" >> $env:GITHUB_ENV
+          echo "LUA_INCLUDE_DIR=$includeDir" >> $env:GITHUB_ENV
 
       - name: Build
         working-directory: rsjson
