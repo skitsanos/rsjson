@@ -8,10 +8,18 @@ fn main() {
         } else {
             "/usr/local/include/luajit-2.1"
         };
+        let luajit_dir = env::var("LUAJIT_DIR").unwrap_or_else(|_| "/usr/local".to_string());
+        // On macOS with Homebrew, LuaJIT library is named 'luajit-5.1' 
+        // On Ubuntu/Alpine, it might be 'luajit' or 'luajit-5.1'
+        let lua_lib = if luajit_dir.contains("/opt/homebrew") || luajit_dir.contains("/usr/local/opt") {
+            "luajit-5.1"  // Homebrew naming
+        } else {
+            "luajit-5.1"  // Standard naming
+        };
         (
-            env::var("LUAJIT_DIR").unwrap_or_else(|_| "/usr/local".to_string()),
+            luajit_dir,
             env::var("LUAJIT_INCLUDE_DIR").unwrap_or_else(|_| default_include.to_string()),
-            "luajit-5.1",
+            lua_lib,
         )
     } else if cfg!(feature = "lua54") {
         let default_include = if std::path::Path::new("/usr/include/lua5.4").exists() {
@@ -24,10 +32,18 @@ fn main() {
         } else {
             "/usr/local/lib"
         };
+        let lua_dir = env::var("LUA_DIR").unwrap_or_else(|_| default_lib_dir.to_string());
+        // On macOS with Homebrew, Lua library is named 'lua' and is in lib/ subdirectory
+        // On Ubuntu/Alpine, it might be 'lua5.4' or 'lua'
+        let lua_lib = if lua_dir.contains("/opt/homebrew") || lua_dir.contains("/usr/local/opt") {
+            "lua"  // Homebrew naming
+        } else {
+            "lua5.4"  // Standard naming for Lua 5.4
+        };
         (
-            env::var("LUA_DIR").unwrap_or_else(|_| default_lib_dir.to_string()),
+            lua_dir,
             env::var("LUA_INCLUDE_DIR").unwrap_or_else(|_| default_include.to_string()),
-            "lua",
+            lua_lib,
         )
     } else if cfg!(feature = "lua53") {
         let default_include = if std::path::Path::new("/usr/include/lua5.3").exists() {
@@ -40,10 +56,16 @@ fn main() {
         } else {
             "/usr/local/lib"
         };
+        let lua_dir = env::var("LUA_DIR").unwrap_or_else(|_| default_lib_dir.to_string());
+        let lua_lib = if lua_dir.contains("/opt/homebrew") || lua_dir.contains("/usr/local/opt") {
+            "lua"  // Homebrew naming
+        } else {
+            "lua5.3"  // Standard naming for Lua 5.3
+        };
         (
-            env::var("LUA_DIR").unwrap_or_else(|_| default_lib_dir.to_string()),
+            lua_dir,
             env::var("LUA_INCLUDE_DIR").unwrap_or_else(|_| default_include.to_string()),
-            "lua",
+            lua_lib,
         )
     } else if cfg!(feature = "lua52") {
         let default_include = if std::path::Path::new("/usr/include/lua5.2").exists() {
@@ -56,10 +78,16 @@ fn main() {
         } else {
             "/usr/local/lib"
         };
+        let lua_dir = env::var("LUA_DIR").unwrap_or_else(|_| default_lib_dir.to_string());
+        let lua_lib = if lua_dir.contains("/opt/homebrew") || lua_dir.contains("/usr/local/opt") {
+            "lua"  // Homebrew naming
+        } else {
+            "lua5.2"  // Standard naming for Lua 5.2
+        };
         (
-            env::var("LUA_DIR").unwrap_or_else(|_| default_lib_dir.to_string()),
+            lua_dir,
             env::var("LUA_INCLUDE_DIR").unwrap_or_else(|_| default_include.to_string()),
-            "lua",
+            lua_lib,
         )
     } else if cfg!(feature = "lua51") {
         let default_include = if std::path::Path::new("/usr/include/lua5.1").exists() {
@@ -72,10 +100,16 @@ fn main() {
         } else {
             "/usr/local/lib"
         };
+        let lua_dir = env::var("LUA_DIR").unwrap_or_else(|_| default_lib_dir.to_string());
+        let lua_lib = if lua_dir.contains("/opt/homebrew") || lua_dir.contains("/usr/local/opt") {
+            "lua"  // Homebrew naming
+        } else {
+            "lua5.1"  // Standard naming for Lua 5.1
+        };
         (
-            env::var("LUA_DIR").unwrap_or_else(|_| default_lib_dir.to_string()),
+            lua_dir,
             env::var("LUA_INCLUDE_DIR").unwrap_or_else(|_| default_include.to_string()),
-            "lua",
+            lua_lib,
         )
     } else {
         // Default fallback to lua5.4
@@ -89,10 +123,16 @@ fn main() {
         } else {
             "/usr/local/lib"
         };
+        let lua_dir = env::var("LUA_DIR").unwrap_or_else(|_| default_lib_dir.to_string());
+        let lua_lib = if lua_dir.contains("/opt/homebrew") || lua_dir.contains("/usr/local/opt") {
+            "lua"  // Homebrew naming
+        } else {
+            "lua5.4"  // Standard naming for Lua 5.4
+        };
         (
-            env::var("LUA_DIR").unwrap_or_else(|_| default_lib_dir.to_string()),
+            lua_dir,
             env::var("LUA_INCLUDE_DIR").unwrap_or_else(|_| default_include.to_string()),
-            "lua",
+            lua_lib,
         )
     };
 
