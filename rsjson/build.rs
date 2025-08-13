@@ -20,7 +20,7 @@ fn main() {
         } else if luajit_dir.contains("/opt/homebrew") || luajit_dir.contains("/usr/local/opt") {
             "luajit-5.1"  // Homebrew naming
         } else if luajit_dir.contains("/.lua/") {
-            "luajit"  // leafo/gh-actions-lua naming
+            "luajit-5.1"  // leafo/gh-actions-lua naming
         } else {
             "luajit-5.1"  // Standard Unix naming
         };
