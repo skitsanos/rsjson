@@ -1,7 +1,7 @@
 [package]
 name = "rsjson"
 description = "A JSON parser and serializer for Lua/LuaJIT using Rust"
-version = "2.2.0"
+version = "2.2.1"
 edition = "2021"
 
 [lib]

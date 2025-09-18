@@ -77,6 +77,23 @@ apk add lua5.3-dev        # Lua 5.3
 apk add luajit-dev        # LuaJIT
 ```
 
+#### Troubleshooting macOS Build Issues
+
+If you encounter build errors on macOS with messages like `'lua.h' file not found`, set the following environment variables before building:
+
+```bash
+export LUA_INCLUDE_DIR=/opt/homebrew/opt/lua/include/lua
+export LUA_DIR=/opt/homebrew/opt/lua/lib
+cargo build --release
+```
+
+Or build with inline environment variables:
+```bash
+LUA_INCLUDE_DIR=/opt/homebrew/opt/lua/include/lua LUA_DIR=/opt/homebrew/opt/lua/lib cargo build --release
+```
+
+This ensures the build script can locate Lua headers and libraries installed via Homebrew.
+
 ### Integration
 
 1. Copy the built library to your Lua library path
