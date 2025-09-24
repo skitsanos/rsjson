@@ -106,7 +106,7 @@ jobs:
           fi
 
       # Install Lua using the leafo action (for LuaJIT on all platforms, and all versions on macOS/Windows)  
-      - uses: leafo/gh-actions-lua@v11
+      - uses: leafo/gh-actions-lua@v12
         if: matrix.lua_version == 'luajit' || matrix.os != 'ubuntu-latest'
         with:
           luaVersion: ${{ matrix.lua_version == 'lua54' && '5.4' || matrix.lua_version == 'lua53' && '5.3' || matrix.lua_version == 'lua52' && '5.2' || matrix.lua_version == 'lua51' && '5.1' || matrix.lua_version == 'luajit' && 'luajit' || '5.4' }}
