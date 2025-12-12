@@ -309,21 +309,21 @@ jobs:
 
       - name: Upload Artifact (Linux)
         if: matrix.os == 'ubuntu-latest'
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: rsjson-${{ matrix.lua_version }}-linux
           path: target/release/librsjson.so
 
       - name: Upload Artifact (macOS)
         if: matrix.os == 'macos-latest'
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: rsjson-${{ matrix.lua_version }}-macos
           path: target/release/librsjson.dylib
 
       - name: Upload Artifact (Windows)
         if: matrix.os == 'windows-latest'
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: rsjson-${{ matrix.lua_version }}-windows
           path: target/release/rsjson.dll
@@ -352,7 +352,7 @@ jobs:
 
       - name: Upload LuaRocks Package
         if: matrix.lua_version == 'lua54' && startsWith(github.ref, 'refs/tags/')
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: rsjson-${{ matrix.os }}.rock
           path: rsjson-${{ env.ROCKS_VERSION }}.*.rock
