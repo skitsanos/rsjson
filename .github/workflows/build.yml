@@ -37,6 +37,7 @@ jobs:
 
   build:
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
         lua_version: [lua51, lua52, lua53, lua54, luajit]

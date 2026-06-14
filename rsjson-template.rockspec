@@ -22,9 +22,6 @@ build = {
         cp target/release/librsjson.so .
       ]],
       install = {
-        lua = {
-          "src-lua/rsjson.lua"
-        },
         lib = {
           "librsjson.so"
         }
@@ -35,9 +32,6 @@ build = {
         cp target/release/librsjson.dylib .
       ]],
       install = {
-        lua = {
-          "src-lua/rsjson.lua"
-        },
         lib = {
           "librsjson.dylib"
         }
@@ -48,9 +42,6 @@ build = {
         copy target\\release\\rsjson.dll .
       ]],
       install = {
-        lua = {
-          "src-lua/rsjson.lua"
-        },
         lib = {
           "rsjson.dll"
         }
