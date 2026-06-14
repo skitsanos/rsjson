@@ -270,6 +270,7 @@ jobs:
             if (Test-Path "$luaLibDir\*.lib") {
               $luaLibDir = Resolve-Path $luaLibDir
               echo "LUA_DIR=$luaLibDir" >> $env:GITHUB_ENV
+              Get-ChildItem "$luaLibDir\*.lib" | Format-Table -AutoSize
             } else {
               Write-Error "Could not find .lib files"
               exit 1

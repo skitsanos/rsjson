@@ -39,13 +39,13 @@ fn lua_link_config() -> (String, &'static str) {
     }
 
     let (feature_version, windows_lib) = if cfg!(feature = "lua51") {
-        ("5.1", "lua")
+        ("5.1", "lua51")
     } else if cfg!(feature = "lua52") {
-        ("5.2", "lua")
+        ("5.2", "lua52")
     } else if cfg!(feature = "lua53") {
-        ("5.3", "lua")
+        ("5.3", "lua53")
     } else {
-        ("5.4", "lua")
+        ("5.4", "lua54")
     };
 
     let homebrew_versioned_dir = format!("/opt/homebrew/opt/lua@{feature_version}/lib");
