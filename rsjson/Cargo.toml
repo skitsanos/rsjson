@@ -3,6 +3,7 @@ name = "rsjson"
 description = "A JSON parser and serializer for Lua/LuaJIT using Rust"
 version = "2.2.1"
 edition = "2021"
+rust-version = "1.96.0"
 
 [lib]
 name = "rsjson"
@@ -17,10 +18,5 @@ lua51 = ["mlua/lua51"]
 luajit = ["mlua/luajit"]
 
 [dependencies]
-serde = { workspace = true }
 serde_json = { workspace = true }
 mlua = { workspace = true, features = ["module"], default-features = false }
-
-[build-dependencies]
-cc = { workspace = true }
-bindgen = { workspace = true }

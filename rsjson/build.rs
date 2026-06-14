@@ -1,229 +1,88 @@
 use std::env;
-use std::path::PathBuf;
+use std::path::Path;
 
 fn main() {
-    let (lua_dir, lua_include_dir, lua_lib) = if cfg!(feature = "luajit") {
-        let (default_dir, default_include) = if cfg!(target_os = "windows") {
-            // Windows defaults (LuaJIT not currently supported on Windows in CI)
-            ("C:\\ProgramData\\chocolatey\\lib\\luajit\\tools", "C:\\ProgramData\\chocolatey\\lib\\luajit\\tools\\include")
-        } else if std::path::Path::new("/usr/include/luajit-2.1").exists() {
-            ("/usr", "/usr/include/luajit-2.1")
-        } else {
-            ("/usr/local", "/usr/local/include/luajit-2.1")
-        };
-        
-        let luajit_dir = env::var("LUAJIT_DIR").unwrap_or_else(|_| default_dir.to_string());
-        
-        // Library naming varies by platform and package manager
-        let lua_lib = if cfg!(target_os = "windows") {
-            "luajit"  // Windows naming
-        } else if luajit_dir.contains("/opt/homebrew") || luajit_dir.contains("/usr/local/opt") {
-            "luajit-5.1"  // Homebrew naming
-        } else if luajit_dir.contains("/.lua/") {
-            "luajit-5.1"  // leafo/gh-actions-lua naming
-        } else {
-            "luajit-5.1"  // Standard Unix naming
-        };
-        
-        (
-            luajit_dir,
-            env::var("LUAJIT_INCLUDE_DIR").unwrap_or_else(|_| default_include.to_string()),
-            lua_lib,
-        )
-    } else if cfg!(feature = "lua54") {
-        let (default_dir, default_include) = if cfg!(target_os = "windows") {
-            // Windows defaults - chocolatey for runtime, downloaded source for headers
-            ("C:\\ProgramData\\chocolatey\\lib\\lua\\tools", "C:\\tools\\lua\\lua-5.4.7\\src")
-        } else if std::path::Path::new("/usr/include/lua5.4").exists() {
-            ("/usr", "/usr/include/lua5.4")
-        } else {
-            ("/usr/local", "/usr/local/include/lua5.4")
-        };
-        
-        let lua_dir = env::var("LUA_DIR").unwrap_or_else(|_| default_dir.to_string());
-        
-        // Library naming varies by platform and package manager
-        let lua_lib = if cfg!(target_os = "windows") {
-            if lua_dir.contains(".lua\\lib") {
-                "lua54"  // leafo/gh-actions-lua creates lua54.lib
-            } else {
-                "lua"   // Standard Windows naming
-            }
-        } else if lua_dir.contains("/opt/homebrew") || lua_dir.contains("/usr/local/opt") {
-            "lua"  // Homebrew naming
-        } else if lua_dir.contains("/usr/lib/lua5.4") {
-            "lua"  // Alpine Linux naming in /usr/lib/lua5.4/
-        } else if lua_dir.contains("/.lua/") {
-            "lua"  // leafo/gh-actions-lua naming
-        } else if lua_dir == "/usr" && std::path::Path::new("/usr/lib/lua5.4").exists() {
-            "lua"  // Alpine Linux system package naming (library in /usr/lib/lua5.4/)
-        } else if lua_dir.contains("/usr/lib") {
-            "lua5.4"  // Standard system package naming
-        } else {
-            "lua5.4"  // Standard Unix naming for Lua 5.4
-        };
-        
-        (
-            lua_dir,
-            env::var("LUA_INCLUDE_DIR").unwrap_or_else(|_| default_include.to_string()),
-            lua_lib,
-        )
-    } else if cfg!(feature = "lua53") {
-        let (default_dir, default_include) = if cfg!(target_os = "windows") {
-            ("C:\\ProgramData\\chocolatey\\lib\\lua\\tools", "C:\\ProgramData\\chocolatey\\lib\\lua\\tools\\include")
-        } else if std::path::Path::new("/usr/include/lua5.3").exists() {
-            ("/usr", "/usr/include/lua5.3")
-        } else {
-            ("/usr/local", "/usr/local/include/lua5.3")
-        };
-        let lua_dir = env::var("LUA_DIR").unwrap_or_else(|_| default_dir.to_string());
-        let lua_lib = if cfg!(target_os = "windows") {
-            "lua"
-        } else if lua_dir.contains("/opt/homebrew") || lua_dir.contains("/usr/local/opt") {
-            "lua"  // Homebrew naming
-        } else if lua_dir.contains("/usr/lib/lua5.3") {
-            "lua"  // Alpine Linux naming in /usr/lib/lua5.3/
-        } else if lua_dir.contains("/.lua/") {
-            "lua"  // leafo/gh-actions-lua naming
-        } else if lua_dir.contains("/usr/lib") {
-            "lua5.3"  // System package naming
-        } else {
-            "lua5.3"  // Standard naming for Lua 5.3
-        };
-        (
-            lua_dir,
-            env::var("LUA_INCLUDE_DIR").unwrap_or_else(|_| default_include.to_string()),
-            lua_lib,
-        )
-    } else if cfg!(feature = "lua52") {
-        let (default_dir, default_include) = if cfg!(target_os = "windows") {
-            ("C:\\ProgramData\\chocolatey\\lib\\lua\\tools", "C:\\ProgramData\\chocolatey\\lib\\lua\\tools\\include")
-        } else if std::path::Path::new("/usr/include/lua5.2").exists() {
-            ("/usr", "/usr/include/lua5.2")
-        } else {
-            ("/usr/local", "/usr/local/include/lua5.2")
-        };
-        let lua_dir = env::var("LUA_DIR").unwrap_or_else(|_| default_dir.to_string());
-        let lua_lib = if cfg!(target_os = "windows") {
-            "lua"
-        } else if lua_dir.contains("/opt/homebrew") || lua_dir.contains("/usr/local/opt") {
-            "lua"  // Homebrew naming
-        } else if lua_dir.contains("/usr/lib/lua5.2") {
-            "lua"  // Alpine Linux naming in /usr/lib/lua5.2/
-        } else if lua_dir.contains("/.lua/") {
-            "lua"  // leafo/gh-actions-lua naming
-        } else if lua_dir.contains("/usr/lib") {
-            "lua5.2"  // System package naming
-        } else {
-            "lua5.2"  // Standard naming for Lua 5.2
-        };
-        (
-            lua_dir,
-            env::var("LUA_INCLUDE_DIR").unwrap_or_else(|_| default_include.to_string()),
-            lua_lib,
-        )
-    } else if cfg!(feature = "lua51") {
-        let (default_dir, default_include) = if cfg!(target_os = "windows") {
-            ("C:\\ProgramData\\chocolatey\\lib\\lua\\tools", "C:\\ProgramData\\chocolatey\\lib\\lua\\tools\\include")
-        } else if std::path::Path::new("/usr/include/lua5.1").exists() {
-            ("/usr", "/usr/include/lua5.1")
-        } else {
-            ("/usr/local", "/usr/local/include/lua5.1")
-        };
-        let lua_dir = env::var("LUA_DIR").unwrap_or_else(|_| default_dir.to_string());
-        let lua_lib = if cfg!(target_os = "windows") {
-            "lua"
-        } else if lua_dir.contains("/opt/homebrew") || lua_dir.contains("/usr/local/opt") {
-            "lua"  // Homebrew naming
-        } else if lua_dir.contains("/usr/lib/lua5.1") {
-            "lua"  // Alpine Linux naming in /usr/lib/lua5.1/
-        } else if lua_dir.contains("/.lua/") {
-            "lua"  // leafo/gh-actions-lua naming
-        } else if lua_dir.contains("/usr/lib") {
-            "lua5.1"  // System package naming
-        } else {
-            "lua5.1"  // Standard naming for Lua 5.1
-        };
-        (
-            lua_dir,
-            env::var("LUA_INCLUDE_DIR").unwrap_or_else(|_| default_include.to_string()),
-            lua_lib,
-        )
-    } else {
-        // Default fallback to lua5.4
-        let (default_dir, default_include) = if cfg!(target_os = "windows") {
-            ("C:\\ProgramData\\chocolatey\\lib\\lua\\tools", "C:\\ProgramData\\chocolatey\\lib\\lua\\tools\\include")
-        } else if std::path::Path::new("/usr/include/lua5.4").exists() {
-            ("/usr", "/usr/include/lua5.4")
-        } else {
-            ("/usr/local", "/usr/local/include/lua5.4")
-        };
-        let lua_dir = env::var("LUA_DIR").unwrap_or_else(|_| default_dir.to_string());
-        let lua_lib = if cfg!(target_os = "windows") {
-            "lua"
-        } else if lua_dir.contains("/opt/homebrew") || lua_dir.contains("/usr/local/opt") {
-            "lua"  // Homebrew naming
-        } else if lua_dir.contains("/usr/lib/lua5.4") {
-            "lua"  // Alpine Linux naming in /usr/lib/lua5.4/
-        } else if lua_dir.contains("/.lua/") {
-            "lua"  // leafo/gh-actions-lua naming
-        } else {
-            "lua5.4"  // Standard naming for Lua 5.4
-        };
-        (
-            lua_dir,
-            env::var("LUA_INCLUDE_DIR").unwrap_or_else(|_| default_include.to_string()),
-            lua_lib,
-        )
-    };
+    let (lua_dir, lua_lib) = lua_link_config();
 
-    // Add library search paths
-    println!("cargo:rustc-link-search={lua_dir}");
-    
-    // Alpine Linux stores libraries in versioned subdirectories
-    if std::path::Path::new("/usr/lib/lua5.4").exists() {
-        println!("cargo:rustc-link-search=/usr/lib/lua5.4");
-    } else if std::path::Path::new("/usr/lib/lua5.3").exists() {
-        println!("cargo:rustc-link-search=/usr/lib/lua5.3");
-    } else if std::path::Path::new("/usr/lib/lua5.2").exists() {
-        println!("cargo:rustc-link-search=/usr/lib/lua5.2");
-    } else if std::path::Path::new("/usr/lib/lua5.1").exists() {
-        println!("cargo:rustc-link-search=/usr/lib/lua5.1");
-    }
-    
+    println!("cargo:rustc-link-search=native={lua_dir}");
     println!("cargo:rustc-link-lib={lua_lib}");
 
-    println!("cargo:rerun-if-changed=wrapper.c");
-
-    let mut cc_build = cc::Build::new();
-    cc_build.file("wrapper.c").include(&lua_include_dir);
-
-    if cfg!(feature = "luajit") {
-        cc_build.define("USE_LUAJIT", None);
+    for lib_dir in [
+        "/usr/lib/lua5.4",
+        "/usr/lib/lua5.3",
+        "/usr/lib/lua5.2",
+        "/usr/lib/lua5.1",
+    ] {
+        if Path::new(lib_dir).exists() {
+            println!("cargo:rustc-link-search=native={lib_dir}");
+        }
     }
-
-    cc_build.compile("lua_wrapper");
-
-    let mut bindgen_builder = bindgen::Builder::default()
-        .header("wrapper.c")
-        .clang_arg(format!("-I{lua_include_dir}"))
-        .parse_callbacks(Box::new(bindgen::CargoCallbacks::new()));
-
-    if cfg!(feature = "luajit") {
-        bindgen_builder = bindgen_builder.clang_arg("-DUSE_LUAJIT");
-    }
-
-    let bindings = bindgen_builder
-        .generate()
-        .expect("Unable to generate bindings");
-
-    let out_path = PathBuf::from(env::var("OUT_DIR").unwrap());
-    bindings
-        .write_to_file(out_path.join("bindings.rs"))
-        .expect("Couldn't write bindings!");
 
     println!("cargo:rerun-if-env-changed=LUA_DIR");
-    println!("cargo:rerun-if-env-changed=LUA_INCLUDE_DIR");
     println!("cargo:rerun-if-env-changed=LUAJIT_DIR");
-    println!("cargo:rerun-if-env-changed=LUAJIT_INCLUDE_DIR");
+}
+
+fn lua_link_config() -> (String, &'static str) {
+    if cfg!(feature = "luajit") {
+        let default_dir = if cfg!(target_os = "windows") {
+            "C:\\ProgramData\\chocolatey\\lib\\luajit\\tools"
+        } else if Path::new("/usr/include/luajit-2.1").exists() {
+            "/usr"
+        } else if Path::new("/opt/homebrew/opt/luajit/lib").exists() {
+            "/opt/homebrew/opt/luajit/lib"
+        } else {
+            "/usr/local"
+        };
+
+        let lua_dir = env::var("LUAJIT_DIR").unwrap_or_else(|_| default_dir.to_string());
+        return (lua_dir, "luajit-5.1");
+    }
+
+    let (feature_version, windows_lib) = if cfg!(feature = "lua51") {
+        ("5.1", "lua")
+    } else if cfg!(feature = "lua52") {
+        ("5.2", "lua")
+    } else if cfg!(feature = "lua53") {
+        ("5.3", "lua")
+    } else {
+        ("5.4", "lua")
+    };
+
+    let homebrew_versioned_dir = format!("/opt/homebrew/opt/lua@{feature_version}/lib");
+
+    let default_dir = if cfg!(target_os = "windows") {
+        "C:\\ProgramData\\chocolatey\\lib\\lua\\tools"
+    } else if Path::new(&format!("/usr/include/lua{feature_version}")).exists() {
+        "/usr"
+    } else if Path::new(&homebrew_versioned_dir).exists() {
+        &homebrew_versioned_dir
+    } else {
+        "/usr/local"
+    };
+
+    let lua_dir = env::var("LUA_DIR").unwrap_or_else(|_| default_dir.to_string());
+
+    if cfg!(target_os = "windows") {
+        return (lua_dir, windows_lib);
+    }
+
+    let versioned_lua_lib = match feature_version {
+        "5.1" => "lua5.1",
+        "5.2" => "lua5.2",
+        "5.3" => "lua5.3",
+        _ => "lua5.4",
+    };
+
+    let lua_lib = if lua_dir.contains("/opt/homebrew")
+        || lua_dir.contains("/usr/local/opt")
+        || lua_dir.contains("/.lua/")
+        || lua_dir.contains(&format!("/usr/lib/lua{feature_version}"))
+        || (lua_dir == "/usr" && Path::new(&format!("/usr/lib/lua{feature_version}")).exists())
+    {
+        "lua"
+    } else {
+        versioned_lua_lib
+    };
+
+    (lua_dir, lua_lib)
 }

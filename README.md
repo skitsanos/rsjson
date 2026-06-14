@@ -2,227 +2,272 @@
 
 [![CI/CD Pipeline](https://github.com/skitsanos/rsjson/actions/workflows/build.yml/badge.svg)](https://github.com/skitsanos/rsjson/actions/workflows/build.yml)
 
-`rsjson` is a high-performance Rust library for JSON encoding and decoding in Lua environments. It provides a unified solution supporting multiple Lua versions through feature flags, with comprehensive cross-platform CI/CD testing.
+`rsjson` is a Rust-backed JSON encoder and decoder for Lua, LuaJIT, and OpenResty environments. It exposes a small Lua module API while using `serde_json` for JSON parsing and serialization.
 
 ## Features
 
-- **High Performance**: Written in Rust with optimized JSON serialization via serde_json
-- **Memory Safety**: Leverages Rust's ownership system and error handling
-- **Unified Codebase**: Single implementation supporting all major Lua versions
-- **Cross-Platform**: Tested on Windows, macOS, and Linux with full CI/CD coverage
-- **Docker Ready**: Containerized testing for all supported Lua versions
-- **Simple API**: Clean interface with `encode` and `decode` methods
+- **Fast JSON handling**: parsing and serialization are delegated to `serde_json`.
+- **Lua and LuaJIT support**: one Rust crate supports Lua 5.1, 5.2, 5.3, 5.4, and LuaJIT through feature flags.
+- **OpenResty ready**: the `luajit` feature builds the module used by OpenResty containers.
+- **Low runtime overhead**: module initialization does not create a separate Lua VM, and decode avoids copying the input string before parsing.
+- **Safer table handling**: sequential Lua tables encode as JSON arrays regardless of table iteration order; sparse, mixed, and recursive tables are handled explicitly.
+- **Cross-platform CI**: GitHub Actions builds Linux, macOS, and Windows targets and runs formatting, tests, and Clippy on Rust 1.96.0.
+
+## Toolchain
+
+The project is pinned to Rust `1.96.0` through `rust-toolchain.toml`. Install Rust with `rustup`; Cargo will automatically select the pinned toolchain inside this repository.
+
+Required local checks:
+
+```bash
+cargo fmt --all -- --check
+cargo test --workspace
+cargo clippy --all-targets -- -D warnings
+```
+
+For the OpenResty/LuaJIT target, also run:
+
+```bash
+cargo test --workspace --no-default-features --features luajit
+cargo build --release --no-default-features --features luajit
+```
 
 ## Installation
 
-### Build from Source
+### Build From Source
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/skitsanos/rsjson.git
-   cd rsjson
-   ```
+```bash
+git clone https://github.com/skitsanos/rsjson.git
+cd rsjson
+```
 
-2. Build for your target Lua version:
-   ```bash
-   # Lua 5.4 (default)
-   cargo build --release
-   
-   # Other versions
-   cargo build --release --no-default-features --features lua53
-   cargo build --release --no-default-features --features lua52
-   cargo build --release --no-default-features --features lua51
-   cargo build --release --no-default-features --features luajit
-   ```
+Build for the target Lua runtime:
 
-3. The shared library will be in `target/release/`:
-   - Linux: `librsjson.so`
-   - macOS: `librsjson.dylib` 
-   - Windows: `rsjson.dll`
+```bash
+# Lua 5.4 (default)
+cargo build --release
+
+# Other Lua versions
+cargo build --release --no-default-features --features lua53
+cargo build --release --no-default-features --features lua52
+cargo build --release --no-default-features --features lua51
+
+# LuaJIT / OpenResty
+cargo build --release --no-default-features --features luajit
+```
+
+The shared library is written to `target/release/`:
+
+| Platform | Output |
+|---|---|
+| Linux | `librsjson.so` |
+| macOS | `librsjson.dylib` |
+| Windows | `rsjson.dll` |
 
 ### Supported Lua Versions
 
-| Version | Feature Flag | Minimum Version |
-|---------|--------------|-----------------|
+| Runtime | Feature Flag | Minimum Version |
+|---|---|---|
 | Lua 5.4 | `lua54` (default) | 5.4.0+ |
 | Lua 5.3 | `lua53` | 5.3.0+ |
 | Lua 5.2 | `lua52` | 5.2.0+ |
 | Lua 5.1 | `lua51` | 5.1.0+ |
-| LuaJIT  | `luajit` | 2.0.0+ |
+| LuaJIT | `luajit` | 2.0.0+ |
 
 ### Prerequisites
 
-Install Lua development headers for your target version:
+Install the development package for the Lua runtime you are building against.
 
-**macOS (Homebrew)**:
-```bash
-brew install lua          # Lua 5.4
-brew install lua@5.3      # Lua 5.3
-brew install luajit       # LuaJIT
-```
-
-**Ubuntu/Debian**:
-```bash
-sudo apt-get install liblua5.4-dev    # Lua 5.4
-sudo apt-get install liblua5.3-dev    # Lua 5.3
-sudo apt-get install liblua5.2-dev    # Lua 5.2
-sudo apt-get install liblua5.1-dev    # Lua 5.1
-sudo apt-get install libluajit-5.1-dev # LuaJIT
-```
-
-**Alpine Linux**:
-```bash
-apk add lua5.4-dev        # Lua 5.4
-apk add lua5.3-dev        # Lua 5.3
-apk add luajit-dev        # LuaJIT
-```
-
-#### Troubleshooting macOS Build Issues
-
-If you encounter build errors on macOS with messages like `'lua.h' file not found`, set the following environment variables before building:
+macOS with Homebrew:
 
 ```bash
-export LUA_INCLUDE_DIR=/opt/homebrew/opt/lua/include/lua
-export LUA_DIR=/opt/homebrew/opt/lua/lib
-cargo build --release
+brew install lua@5.4
+brew install lua@5.3
+brew install luajit
 ```
 
-Or build with inline environment variables:
+Ubuntu/Debian:
+
 ```bash
-LUA_INCLUDE_DIR=/opt/homebrew/opt/lua/include/lua LUA_DIR=/opt/homebrew/opt/lua/lib cargo build --release
+sudo apt-get install liblua5.4-dev
+sudo apt-get install liblua5.3-dev
+sudo apt-get install liblua5.2-dev
+sudo apt-get install liblua5.1-dev
+sudo apt-get install libluajit-5.1-dev
 ```
 
-This ensures the build script can locate Lua headers and libraries installed via Homebrew.
+Alpine Linux:
 
-### Integration
+```bash
+apk add lua5.4-dev
+apk add lua5.3-dev
+apk add lua5.2-dev
+apk add lua5.1-dev
+apk add luajit-dev
+```
 
-1. Copy the built library to your Lua library path
-2. Ensure the library is accessible to your Lua runtime via `package.cpath`
+### Build Path Overrides
 
-### Usage
+The build script detects common Linux, Alpine, Homebrew, and CI layouts. If your Lua installation is in a custom location, set the library directory explicitly:
 
-Here's a simple example demonstrating how to use `rsjson`:
+```bash
+LUA_DIR=/path/to/lua/lib cargo build --release --no-default-features --features lua54
+LUAJIT_DIR=/path/to/luajit/lib cargo build --release --no-default-features --features luajit
+```
+
+On Apple Silicon Homebrew, Lua 5.4 is usually:
+
+```bash
+LUA_DIR=/opt/homebrew/opt/lua@5.4/lib cargo build --release
+```
+
+The project intentionally prefers versioned Homebrew formulae such as `lua@5.4`; the unversioned `lua` formula may point to a newer Lua ABI than the selected Cargo feature.
+
+## OpenResty and Railway
+
+OpenResty uses LuaJIT, so build rsjson with the `luajit` feature:
+
+```bash
+cargo build --release --no-default-features --features luajit
+```
+
+In an OpenResty container, copy `target/release/librsjson.so` into a directory on `package.cpath`, commonly `/app/lib/rsjson.so`:
+
+```bash
+cp target/release/librsjson.so /app/lib/rsjson.so
+```
+
+The included [docker/Dockerfile.luajit](docker/Dockerfile.luajit) demonstrates this layout for an OpenResty Bookworm image. It uses a Rust 1.96 builder stage and copies only the compiled module into the OpenResty runtime image to reduce image size and Railway runtime cost.
+
+Runtime notes:
+
+- Use `luajit` builds for OpenResty; do not load a Lua 5.4 build into OpenResty.
+- Prefer a glibc OpenResty image for rsjson. Rust does not support producing this `cdylib` Lua module for the Linux musl target used by Alpine.
+- Keep `package.cpath` pointed at the compiled module path.
+- Reuse the module through Lua's normal `require("rsjson")` cache.
+- Avoid pretty serialization on hot paths unless formatted output is required.
+
+## Usage
 
 ```lua
-local json = require('rsjson')
+local json = require("rsjson")
 
-local json_string = '{"user": "demo", "debug": true, "unique_id": 123456, "meta": {"items": ["1","2","3"]}}'
+local json_string = '{"user":"demo","debug":true,"unique_id":123456,"meta":{"items":["1","2","3"]}}'
 
--- Decode JSON string to Lua table
 local doc = json.decode(json_string)
-print(doc)
+print(doc.user)
 
--- Encode Lua table to JSON string
-print(json.encode(doc))
+local encoded = json.encode(doc)
+print(encoded)
 ```
+
+Aliases are provided for compatibility:
+
+| Function | Alias | Description |
+|---|---|---|
+| `decode(json_string)` | `parse(json_string)` | Decode JSON into Lua values. |
+| `encode(value)` | `stringify(value)` | Encode Lua values into compact JSON. |
+| `stringify_pretty(value)` | none | Encode Lua values into pretty JSON. |
+
+### Table Encoding Semantics
+
+Lua tables do not distinguish arrays from objects at the type level. rsjson uses these rules:
+
+- Tables with exactly the positive integer keys `1..n` encode as JSON arrays.
+- Empty tables encode as empty arrays.
+- Sparse tables, mixed tables, and tables with non-integer keys encode as JSON objects.
+- Numeric object keys are converted to JSON object key strings.
+- Recursive tables return an error because JSON cannot represent cycles.
 
 ## Performance
 
 ### vs Pure Lua (dkjson)
 
-Comparison with dkjson (pure Lua implementation):
+Comparison with dkjson:
 
-| Dataset | Operation | rsjson ops/sec | dkjson ops/sec | **Speedup** |
-|---------|-----------|----------------|----------------|-------------|
-| Small (50B) | encode | **1,329,717** | 251,797 | **5.3x faster** |
-| Small (50B) | decode | **1,002,526** | 177,503 | **5.8x faster** |
-| Medium (300B) | encode | **522,548** | 108,846 | **4.9x faster** |
-| Medium (300B) | decode | **343,136** | 72,585 | **4.7x faster** |
-| Large Array (50KB) | encode | **1,512** | 284 | **5.4x faster** |
-| Large Array (50KB) | decode | **1,035** | 169 | **6.1x faster** |
+| Dataset | Operation | rsjson ops/sec | dkjson ops/sec | Speedup |
+|---|---:|---:|---:|---:|
+| Small (50B) | encode | 1,329,717 | 251,797 | 5.3x |
+| Small (50B) | decode | 1,002,526 | 177,503 | 5.8x |
+| Medium (300B) | encode | 522,548 | 108,846 | 4.9x |
+| Medium (300B) | decode | 343,136 | 72,585 | 4.7x |
+| Large Array (50KB) | encode | 1,512 | 284 | 5.4x |
+| Large Array (50KB) | decode | 1,035 | 169 | 6.1x |
 
-### vs C Implementation (lua-cjson)
+### vs lua-cjson
 
-Comparison with lua-cjson 2.1.0.10 (C implementation):
+Comparison with lua-cjson 2.1.0.10:
 
-| Library | Encode (ops/sec) | Decode (ops/sec) | **Performance** |
-|---------|------------------|------------------|-----------------|
-| **cjson** | **1,969,279** | **1,440,673** | Fastest raw speed |
-| **rsjson** | 754,102 | 493,418 | 2.6x slower encode, 2.9x slower decode |
-| **dkjson** | 146,611 | 100,631 | 13.4x slower encode, 14.3x slower decode |
+| Library | Encode ops/sec | Decode ops/sec | Notes |
+|---|---:|---:|---|
+| lua-cjson | 1,969,279 | 1,440,673 | Fastest raw speed |
+| rsjson | 754,102 | 493,418 | Rust memory safety and consistent table handling |
+| dkjson | 146,611 | 100,631 | Pure Lua portability |
 
-### **Why Choose rsjson over cjson?**
+Choose rsjson when reliability, memory safety, and cross-platform Cargo builds matter. Choose lua-cjson when maximum raw throughput is the only priority and the input/table shapes are tightly controlled.
 
-While cjson is faster in pure performance, **rsjson offers significant reliability advantages**:
+Run local benchmarks with:
 
-| **Aspect** | **rsjson** | **lua-cjson** |
-|------------|------------|---------------|
-| **Sparse Arrays** | ✅ Consistent behavior | ❌ Converts to objects unexpectedly |
-| **Number Precision** | ✅ Full precision maintained | ⚠️ Precision loss in large numbers |
-| **Memory Safety** | ✅ Rust memory safety guarantees | ❌ C memory management risks |
-| **Error Messages** | ✅ Detailed, helpful errors | ⚠️ Generic C-style errors |
-| **Unicode Handling** | ✅ Full UTF-8 support | ⚠️ Limited Unicode support |
-| **Maintenance** | ✅ Active development | ⚠️ Infrequent updates |
-| **Platform Support** | ✅ Cross-platform via Cargo | ❌ Requires C compilation setup |
-
-### **Performance vs Reliability Trade-off**
-
-- **Choose cjson** if: Maximum speed is critical, data is well-controlled, C compilation is acceptable
-- **Choose rsjson** if: Reliability and safety matter, cross-platform deployment, modern development practices
-- **Choose dkjson** if: Pure Lua portability is required, performance is not critical
-
-**Test Environment**: Apple M4 Pro, 24GB RAM, macOS 15.6, Lua 5.4.8
-
-*Run your own benchmarks with: `./benchmarks/run_benchmarks.sh`*
-
-## API
-
-`json.decode(json_string: string) -> table`
-Decodes a JSON-formatted string and returns a Lua table.
-
-`json.encode(lua_table: table) -> string`
-Encodes a Lua table into a JSON-formatted string.
+```bash
+./benchmarks/run_benchmarks.sh
+./benchmarks/run_benchmarks.sh -t comprehensive
+./benchmarks/run_benchmarks.sh -o benchmark_results.txt
+```
 
 ## Development
 
-### Testing
+### Rust Checks
 
-Run the full test suite including Docker containers:
+```bash
+cargo fmt --all -- --check
+cargo test --workspace
+cargo clippy --all-targets -- -D warnings
+```
+
+### Docker Tests
+
+Run the quick Docker smoke test:
+
+```bash
+./docker/test-simple.sh
+```
+
+Run all Docker tests:
+
 ```bash
 ./docker/test-all.sh
 ```
 
-Build individual Docker containers:
+Build individual containers:
+
 ```bash
 docker build -f docker/Dockerfile.lua54 -t rsjson:lua54 .
 docker build -f docker/Dockerfile.luajit -t rsjson:luajit .
 ```
 
-### Benchmarking
-
-Run performance benchmarks comparing rsjson with other JSON libraries:
-
-```bash
-# Quick benchmark (30 seconds)
-./benchmarks/run_benchmarks.sh
-
-# Comprehensive statistical analysis (5 minutes)  
-./benchmarks/run_benchmarks.sh -t comprehensive
-
-# Save results to file
-./benchmarks/run_benchmarks.sh -o benchmark_results.txt
-```
-
-The benchmark suite includes multiple realistic datasets and statistical analysis for reliable performance measurement.
-
 ### CI/CD
 
-This project uses GitHub Actions for comprehensive testing across:
-- **Platforms**: Windows, macOS, Linux
-- **Lua Versions**: 5.1, 5.2, 5.3, 5.4, LuaJIT
-- **Containerization**: Docker testing on Alpine Linux
+GitHub Actions uses:
 
-See [PIPELINE.md](PIPELINE.md) for detailed information about our CI/CD implementation.
+- Rust `1.96.0`
+- `actions/checkout@v6.0.3`
+- `actions/upload-artifact@v7.0.1`
+- `softprops/action-gh-release@v3.0.0`
+- `leafo/gh-actions-lua@v13.0.0`
+- Linux, macOS, and Windows build matrix
+- Linux quality gate for `fmt`, `test`, and `clippy`
+- Docker smoke testing on Alpine Linux
+
+See [PIPELINE.md](PIPELINE.md) for details.
 
 ## Contributing
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes with tests
-4. Ensure CI/CD passes
-5. Submit a pull request
+1. Fork the repository.
+2. Create a feature branch.
+3. Make focused changes with tests.
+4. Run `cargo fmt --all -- --check`, `cargo test --workspace`, and `cargo clippy --all-targets -- -D warnings`.
+5. Submit a pull request.
 
 ## License
 
 This project is licensed under the MIT License.
-

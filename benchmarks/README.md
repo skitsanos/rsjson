@@ -1,229 +1,172 @@
 # Benchmarking rsjson
 
-This directory contains comprehensive benchmarking tools for evaluating rsjson performance against other Lua JSON libraries.
+This directory contains benchmark tools for comparing rsjson with other Lua JSON libraries.
 
 ## Quick Start
 
-1. **Build rsjson**:
-   ```bash
-   cargo build --release
-   ```
+Build and benchmark the default Lua 5.4 target:
 
-2. **Install comparison libraries** (optional but recommended):
-   ```bash
-   # Ubuntu/Debian
-   sudo apt-get install lua-cjson-dev lua-dkjson
-   
-   # macOS with Homebrew
-   brew install lua-cjson
-   luarocks install dkjson
-   
-   # Or install via LuaRocks
-   luarocks install lua-cjson
-   luarocks install dkjson
-   ```
+```bash
+./benchmarks/run_benchmarks.sh --build --feature lua54 --lua lua5.4
+```
 
-3. **Run simple benchmark**:
-   ```bash
-   cd benchmarks
-   lua simple_benchmark.lua
-   ```
+Build and benchmark the OpenResty/LuaJIT target:
 
-4. **Run comprehensive benchmark**:
-   ```bash
-   lua comprehensive_benchmark.lua
-   ```
+```bash
+./benchmarks/run_benchmarks.sh --build --feature luajit --lua luajit
+```
 
-## Benchmark Scripts
+Run the comprehensive suite:
+
+```bash
+./benchmarks/run_benchmarks.sh --type comprehensive
+```
+
+Save output:
+
+```bash
+./benchmarks/run_benchmarks.sh --output benchmark_results.txt
+```
+
+## Runner Options
+
+```text
+Usage: ./benchmarks/run_benchmarks.sh [OPTIONS]
+
+Options:
+  -t, --type TYPE       Benchmark type: simple, comprehensive
+  -o, --output FILE     Save output to file
+      --lua BIN         Lua executable to use, for example lua, lua5.4, luajit
+      --feature FEATURE Cargo feature to build when --build is used
+      --build           Build rsjson before running benchmarks
+  -h, --help            Show help
+```
+
+The runner sets `LUA_CPATH` so Lua can load the compiled module and generated `rsjson.so` symlink. When `--build` is used, builds are isolated under `target/bench-<feature>/release` so Lua 5.4 and LuaJIT benchmark runs do not overwrite each other's modules.
+
+The selected `--lua` executable must match the selected `--feature`. For example, use a Lua 5.4 executable with `--feature lua54`, and use `luajit` with `--feature luajit`.
+
+## Optional Comparison Libraries
+
+Install whichever comparison libraries are useful on your platform:
+
+```bash
+luarocks install dkjson
+luarocks install lua-cjson
+luarocks install rapidjson
+```
+
+On Ubuntu/Debian:
+
+```bash
+sudo apt-get install lua-cjson lua-dkjson
+```
+
+## Scripts
 
 ### `simple_benchmark.lua`
-- **Purpose**: Quick performance comparison
-- **Duration**: ~30 seconds
-- **Output**: Basic timing and ops/sec metrics
-- **Best for**: CI/CD, quick validation, development
 
-**Example Output**:
-```
-Library    Dataset      Op       Time(s)   Ops/sec     Mem(KB)
-----------------------------------------------------------------------
-rsjson     small        encode     0.156     320513       12.5
-dkjson     small        encode     0.892      55984       45.2
-rsjson     small        decode     0.134     373134       8.1
-dkjson     small        decode     1.123      44506       52.3
+The simple benchmark is intended for quick local checks. It reports time, operations per second, and Lua heap delta for:
 
-=== Performance Comparison ===
-small        encode: rsjson is 5.7x faster than dkjson  
-small        decode: rsjson is 8.4x faster than dkjson
-```
+- small object
+- medium nested object
+- large array
+- sparse mixed table
+
+The sparse table case is included because rsjson has explicit table classification rules: dense positive integer keys encode as arrays, while sparse or mixed tables encode as objects.
 
 ### `comprehensive_benchmark.lua`
-- **Purpose**: Detailed performance analysis
-- **Duration**: ~5 minutes  
-- **Output**: Statistical analysis, memory usage, error handling
-- **Best for**: Performance regression testing, detailed analysis
 
-**Features**:
-- Multiple test datasets (small, medium, large array, deep nested, large object)
-- Statistical analysis (min/max/avg/median/std deviation)
-- Memory usage tracking
-- Error handling performance
-- Multiple runs for statistical reliability
+The comprehensive benchmark runs multiple statistical passes and includes:
 
-## Test Datasets
+- small object
+- medium nested object
+- large array
+- deeply nested object
+- large object
+- sparse mixed table
+- malformed JSON error handling
 
-### Small Dataset
-- **Size**: ~50 bytes JSON
-- **Structure**: Simple object with basic types
-- **Iterations**: 50,000
-- **Use case**: Microservice API responses, configuration data
-
-### Medium Dataset  
-- **Size**: ~300 bytes JSON
-- **Structure**: Nested objects with arrays
-- **Iterations**: 10,000
-- **Use case**: User profiles, application state
-
-### Large Array Dataset
-- **Size**: ~50KB JSON  
-- **Structure**: 1,000 item array with nested objects
-- **Iterations**: 1,000
-- **Use case**: Data export, bulk operations
-
-### Deep Nested Dataset
-- **Size**: ~2KB JSON
-- **Structure**: 100 levels of nesting
-- **Iterations**: 5,000  
-- **Use case**: Complex configuration, tree structures
-
-### Large Object Dataset
-- **Size**: ~100KB JSON
-- **Structure**: 500 fields with nested data
-- **Iterations**: 500
-- **Use case**: Database records, complex documents
+It uses deterministic library ordering and a fixed random seed so output is easier to compare between runs.
 
 ## Interpreting Results
 
-### Performance Metrics
+Key columns:
 
-- **Operations per second (ops/sec)**: Higher is better
-- **Time (seconds)**: Lower is better  
-- **Memory (KB)**: Lower is generally better
-- **Standard deviation**: Lower indicates more consistent performance
+- `Ops/sec`: higher is better.
+- `Time(s)`: lower is better.
+- `Mem(KB)`: Lua heap delta during the benchmark loop; lower usually means less Lua-side allocation pressure.
+- `Std Dev`: lower means the runs were more consistent.
 
-### Expected Performance Characteristics
+Do not compare one-off benchmark runs as release criteria. Run each benchmark several times on an otherwise idle machine and compare medians or averages.
 
-**rsjson** (Rust implementation):
-- ✅ **Fast encoding/decoding**: 2-10x faster than pure Lua implementations
-- ✅ **Low memory usage**: Minimal allocation overhead
-- ✅ **Consistent performance**: Low standard deviation
-- ✅ **Large data handling**: Scales well with data size
+## OpenResty/Railway Notes
 
-**dkjson** (Pure Lua):
-- ✅ **Reliable**: Mature, well-tested implementation  
-- ✅ **Portable**: Works everywhere Lua works
-- ❌ **Slower**: Pure Lua implementation
-- ❌ **Memory overhead**: Higher allocation patterns
+For OpenResty deployments, benchmark with LuaJIT:
 
-**lua-cjson** (C implementation):
-- ✅ **Very fast**: Often fastest for encoding
-- ✅ **Mature**: Widely used in production
-- ❌ **Platform dependent**: Requires C compilation
-- ❌ **Error handling**: Can be inconsistent
+```bash
+./benchmarks/run_benchmarks.sh --build --feature luajit --lua luajit
+```
 
-## Running Automated Benchmarks
+This is the relevant path for Railway OpenResty containers. Benchmarking with stock Lua 5.4 is still useful for development, but it does not represent the OpenResty runtime ABI.
 
-### CI/CD Integration
+## CI Usage
 
-Add to your GitHub Actions workflow:
+Benchmarks are not part of the required CI quality gate because runtime performance varies heavily across GitHub-hosted runners. If you want benchmark artifacts for a branch, use the current artifact action major:
 
 ```yaml
 - name: Run JSON benchmarks
-  run: |
-    cd benchmarks
-    lua simple_benchmark.lua > benchmark_results.txt
-    cat benchmark_results.txt
-    
-- name: Upload benchmark results  
-  uses: actions/upload-artifact@v3
+  run: ./benchmarks/run_benchmarks.sh --build --feature lua54 --output benchmark_results.txt
+
+- name: Upload benchmark results
+  uses: actions/upload-artifact@v7.0.1
   with:
     name: benchmark-results
-    path: benchmarks/benchmark_results.txt
-```
-
-### Performance Regression Testing
-
-```bash
-# Run baseline benchmark
-lua simple_benchmark.lua > baseline_results.txt
-
-# After changes, compare results  
-lua simple_benchmark.lua > new_results.txt
-diff baseline_results.txt new_results.txt
-```
-
-### Custom Benchmark Scenarios
-
-Create custom benchmarks for your specific use case:
-
-```lua
--- Custom data structure
-local my_data = {
-    -- Your specific JSON structure
-}
-
--- Custom benchmark
-local result = benchmark("my_test", 
-    function() rsjson.encode(my_data) end, 
-    10000)
-    
-print("My data encode: " .. result.ops_per_sec .. " ops/sec")
+    path: benchmark_results.txt
 ```
 
 ## Troubleshooting
 
-### Library Not Found Errors
+### `rsjson` Cannot Be Loaded
+
+Check the selected Lua executable and ABI:
 
 ```bash
-# Check library path
-lua -e "print(package.cpath)"
-
-# Install missing libraries
-luarocks install dkjson
-luarocks install lua-cjson
-
-# Or copy rsjson library to Lua path
-cp ../target/release/librsjson.so /usr/local/lib/lua/5.4/rsjson.so
+lua -e "print(_VERSION)"
+luajit -e "print(_VERSION, jit.version)"
 ```
 
-### Memory Issues
+Build with the matching feature:
 
 ```bash
-# Increase Lua memory limit if needed
-ulimit -v 2097152  # 2GB virtual memory limit
+cargo build --release --no-default-features --features lua54
+cargo build --release --no-default-features --features luajit
 ```
 
-### Platform-Specific Notes
+Then run the benchmark with the matching executable:
 
-**macOS**: Use Homebrew for lua-cjson installation
-**Linux**: Use package manager (apt, yum) for lua-cjson-dev  
-**Windows**: Consider using lua-cjson from LuaRocks
+```bash
+./benchmarks/run_benchmarks.sh --lua lua5.4 --feature lua54
+./benchmarks/run_benchmarks.sh --lua luajit --feature luajit
+```
+
+### Comparison Libraries Are Missing
+
+The benchmarks still run with only rsjson installed. Missing libraries are reported as `MISSING` and skipped.
+
+### Results Look Noisy
+
+- Close other CPU-heavy applications.
+- Run multiple times.
+- Prefer comprehensive benchmark medians for regressions.
+- Benchmark the same Lua executable and same rsjson feature every time.
 
 ## Contributing
 
-When adding new benchmark scenarios:
+When adding benchmark scenarios:
 
-1. **Add to both simple and comprehensive benchmarks**
-2. **Include realistic data structures** 
-3. **Document expected performance characteristics**
-4. **Test across multiple Lua versions**
-5. **Update this README with new scenarios**
-
-## Performance Goals
-
-Target performance characteristics for rsjson:
-
-- **Small data**: >300k ops/sec encoding, >400k ops/sec decoding
-- **Medium data**: >50k ops/sec encoding, >80k ops/sec decoding  
-- **Large arrays**: >5k ops/sec encoding, >8k ops/sec decoding
-- **Memory usage**: <50% of pure Lua implementations
-- **Consistency**: <10% standard deviation across runs
+1. Add the dataset to both simple and comprehensive scripts when practical.
+2. Keep output ordering deterministic.
+3. Include realistic Lua table shapes.
+4. Document why the scenario matters.
+5. Test with both `lua54` and `luajit` when the change affects OpenResty behavior.

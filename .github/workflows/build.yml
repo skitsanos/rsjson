@@ -13,6 +13,26 @@ permissions:
   contents: write
 
 jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6.0.3
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: clippy, rustfmt
+      - name: Install Lua dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y liblua5.4-dev
+          echo "LUA_DIR=/usr/lib/x86_64-linux-gnu" >> $GITHUB_ENV
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+      - name: Run tests
+        run: cargo test --workspace
+      - name: Run Clippy
+        run: cargo clippy --all-targets -- -D warnings
+
   build:
     strategy:
       matrix:
@@ -39,11 +59,9 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.3
       - name: Setup Rust
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          toolchain: stable
+        uses: dtolnay/rust-toolchain@1.96.0
 
       - name: Set env
         if: matrix.os != 'windows-latest'
@@ -87,7 +105,7 @@ jobs:
           echo "$(task --version)"
 
       # Set up MSVC environment on Windows (required for Lua compilation)
-      - uses: ilammy/msvc-dev-cmd@v1
+      - uses: ilammy/msvc-dev-cmd@v1.13.0
         if: matrix.os == 'windows-latest'
 
       - name: Install Lua dependencies (Ubuntu)
@@ -106,7 +124,7 @@ jobs:
           fi
 
       # Install Lua using the leafo action (for LuaJIT on all platforms, and all versions on macOS/Windows)  
-      - uses: leafo/gh-actions-lua@v13
+      - uses: leafo/gh-actions-lua@v13.0.0
         if: matrix.lua_version == 'luajit' || matrix.os != 'ubuntu-latest'
         with:
           luaVersion: ${{ matrix.lua_version == 'lua54' && '5.4' || matrix.lua_version == 'lua53' && '5.3' || matrix.lua_version == 'lua52' && '5.2' || matrix.lua_version == 'lua51' && '5.1' || matrix.lua_version == 'luajit' && 'luajit' || '5.4' }}
@@ -309,21 +327,21 @@ jobs:
 
       - name: Upload Artifact (Linux)
         if: matrix.os == 'ubuntu-latest'
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v7.0.1
         with:
           name: rsjson-${{ matrix.lua_version }}-linux
           path: target/release/librsjson.so
 
       - name: Upload Artifact (macOS)
         if: matrix.os == 'macos-latest'
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v7.0.1
         with:
           name: rsjson-${{ matrix.lua_version }}-macos
           path: target/release/librsjson.dylib
 
       - name: Upload Artifact (Windows)
         if: matrix.os == 'windows-latest'
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v7.0.1
         with:
           name: rsjson-${{ matrix.lua_version }}-windows
           path: target/release/rsjson.dll
@@ -352,14 +370,14 @@ jobs:
 
       - name: Upload LuaRocks Package
         if: matrix.lua_version == 'lua54' && startsWith(github.ref, 'refs/tags/')
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v7.0.1
         with:
           name: rsjson-${{ matrix.os }}.rock
           path: rsjson-${{ env.ROCKS_VERSION }}.*.rock
 
       - name: Release
         if: startsWith(github.ref, 'refs/tags/') && matrix.lua_version == 'lua54'
-        uses: softprops/action-gh-release@v3
+        uses: softprops/action-gh-release@v3.0.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -373,7 +391,7 @@ jobs:
   docker-test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.3
       
       - name: Run Docker test suite
         timeout-minutes: 10

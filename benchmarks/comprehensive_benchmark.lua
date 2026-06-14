@@ -7,6 +7,8 @@ Tests rsjson against other popular Lua JSON libraries across various scenarios
 
 local json_libraries = {}
 local results = {}
+local library_order = {"rsjson", "dkjson", "cjson", "rapidjson"}
+math.randomseed(12345)
 
 -- Try to load available JSON libraries
 local function try_require(name)
@@ -15,18 +17,18 @@ local function try_require(name)
 end
 
 -- Load available libraries
-json_libraries.rsjson = try_require("rsjson")
-json_libraries.dkjson = try_require("dkjson") 
-json_libraries.cjson = try_require("cjson")
-json_libraries.rapidjson = try_require("rapidjson")
+for _, name in ipairs(library_order) do
+    json_libraries[name] = try_require(name)
+end
 
 print("=== JSON Library Benchmark Suite ===")
 print("Available libraries:")
-for name, lib in pairs(json_libraries) do
+for _, name in ipairs(library_order) do
+    local lib = json_libraries[name]
     if lib then
-        print("  ✓ " .. name)
+        print("  OK: " .. name)
     else
-        print("  ✗ " .. name .. " (not available)")
+        print("  MISSING: " .. name)
     end
 end
 print()
@@ -119,13 +121,24 @@ for i = 1, 500 do
     }
 end
 
+test_data.sparse_table = {
+    [1] = "first",
+    [3] = "third",
+    [10] = "tenth",
+    label = "sparse"
+}
+
 -- JSON strings for decode testing
 local encoded_strings = {}
 
--- Pre-encode test data with a reference implementation (dkjson)
-if json_libraries.dkjson then
+-- Pre-encode test data with the first available implementation.
+local reference_encoder = json_libraries.rsjson or json_libraries.dkjson or json_libraries.cjson or json_libraries.rapidjson
+if reference_encoder then
     for name, data in pairs(test_data) do
-        encoded_strings[name] = json_libraries.dkjson.encode(data)
+        local ok, encoded = pcall(reference_encoder.encode, data)
+        if ok then
+            encoded_strings[name] = encoded
+        end
     end
 end
 
@@ -135,7 +148,8 @@ local benchmark_config = {
     {name = "medium", data = test_data.medium, iterations = 10000},
     {name = "large_array", data = test_data.large_array, iterations = 1000},
     {name = "deep_nested", data = test_data.deep_nested, iterations = 5000},
-    {name = "large_object", data = test_data.large_object, iterations = 500}
+    {name = "large_object", data = test_data.large_object, iterations = 500},
+    {name = "sparse_table", data = test_data.sparse_table, iterations = 20000}
 }
 
 -- Memory tracking helper
@@ -193,6 +207,11 @@ local function benchmark_operation(name, operation, iterations, runs)
     }
 end
 
+local function supports_operation(operation)
+    local ok = pcall(operation)
+    return ok
+end
+
 -- Run benchmarks
 local function run_benchmark_suite()
     print("Running comprehensive benchmark suite...")
@@ -208,36 +227,52 @@ local function run_benchmark_suite()
         print("Dataset: " .. dataset_name .. " (" .. iterations .. " iterations)")
         
         -- Test each available library
-        for lib_name, lib in pairs(json_libraries) do
+        for _, lib_name in ipairs(library_order) do
+            local lib = json_libraries[lib_name]
             if lib and lib.encode and lib.decode then
+                local encode_operation = function() lib.encode(test_data_item) end
                 -- Benchmark encoding
-                local encode_stats = benchmark_operation(
-                    lib_name .. "_encode",
-                    function() lib.encode(test_data_item) end,
-                    iterations
-                )
-                
-                -- Benchmark decoding (if we have encoded string)
-                local decode_stats
-                if encoded_string then
-                    decode_stats = benchmark_operation(
-                        lib_name .. "_decode", 
-                        function() lib.decode(encoded_string) end,
+                local encode_stats
+                if supports_operation(encode_operation) then
+                    encode_stats = benchmark_operation(
+                        lib_name .. "_encode",
+                        encode_operation,
                         iterations
                     )
                 end
                 
+                -- Benchmark decoding (if we have encoded string)
+                local decode_stats
+                if encoded_string then
+                    local decode_operation = function() lib.decode(encoded_string) end
+                    if supports_operation(decode_operation) then
+                        decode_stats = benchmark_operation(
+                            lib_name .. "_decode",
+                            decode_operation,
+                            iterations
+                        )
+                    end
+                end
+                
                 -- Print results
-                printf("  %8s | %-6s | %10s | %8.4fs | %8.0f | %6dKB | ±%.4f",
-                    lib_name, "encode", dataset_name, 
-                    encode_stats.avg, encode_stats.ops_per_second,
-                    math.floor(encode_stats.memory_delta / 1024), encode_stats.std_dev)
+                if encode_stats then
+                    printf("  %8s | %-6s | %12s | %8.4fs | %8.0f | %6dKB | +/- %.4f",
+                        lib_name, "encode", dataset_name,
+                        encode_stats.avg, encode_stats.ops_per_second,
+                        math.floor(encode_stats.memory_delta / 1024), encode_stats.std_dev)
+                else
+                    printf("  %8s | %-6s | %12s | %8s | %8s | %6s | %s",
+                        lib_name, "encode", dataset_name, "SKIP", "SKIP", "SKIP", "SKIP")
+                end
                     
                 if decode_stats then
-                    printf("  %8s | %-6s | %10s | %8.4fs | %8.0f | %6dKB | ±%.4f",
+                    printf("  %8s | %-6s | %12s | %8.4fs | %8.0f | %6dKB | +/- %.4f",
                         lib_name, "decode", dataset_name,
                         decode_stats.avg, decode_stats.ops_per_second, 
                         math.floor(decode_stats.memory_delta / 1024), decode_stats.std_dev)
+                elseif encoded_string then
+                    printf("  %8s | %-6s | %12s | %8s | %8s | %6s | %s",
+                        lib_name, "decode", dataset_name, "SKIP", "SKIP", "SKIP", "SKIP")
                 end
             end
         end
@@ -264,25 +299,30 @@ local function print_performance_summary()
     local encoded_string = encoded_strings.medium
     
     local results = {}
-    for lib_name, lib in pairs(json_libraries) do
+    for _, lib_name in ipairs(library_order) do
+        local lib = json_libraries[lib_name]
         if lib and lib.encode and lib.decode then
-            local encode_stats = benchmark_operation(
-                lib_name .. "_encode",
-                function() lib.encode(test_data_item) end,
-                iterations, 3
-            )
-            
-            local decode_stats = benchmark_operation(
-                lib_name .. "_decode",
-                function() lib.decode(encoded_string) end, 
-                iterations, 3
-            )
-            
-            results[lib_name] = {
-                encode_ops = encode_stats.ops_per_second,
-                decode_ops = decode_stats.ops_per_second,
-                total_time = encode_stats.avg + decode_stats.avg
-            }
+            local encode_operation = function() lib.encode(test_data_item) end
+            local decode_operation = function() lib.decode(encoded_string) end
+            if supports_operation(encode_operation) and supports_operation(decode_operation) then
+                local encode_stats = benchmark_operation(
+                    lib_name .. "_encode",
+                    encode_operation,
+                    iterations, 3
+                )
+
+                local decode_stats = benchmark_operation(
+                    lib_name .. "_decode",
+                    decode_operation,
+                    iterations, 3
+                )
+
+                results[lib_name] = {
+                    encode_ops = encode_stats.ops_per_second,
+                    decode_ops = decode_stats.ops_per_second,
+                    total_time = encode_stats.avg + decode_stats.avg
+                }
+            end
         end
     end
     
@@ -295,7 +335,9 @@ local function print_performance_summary()
     end
     
     -- Print comparisons
-    for lib_name, stats in pairs(results) do
+    for _, lib_name in ipairs(library_order) do
+        local stats = results[lib_name]
+        if stats then
         local encode_ratio = stats.encode_ops / fastest_encode
         local decode_ratio = stats.decode_ops / fastest_decode
         
@@ -304,6 +346,7 @@ local function print_performance_summary()
         printf("  Decode: %8.0f ops/sec (%.2fx of fastest)", stats.decode_ops, decode_ratio)
         printf("  Total:  %8.4fs", stats.total_time)
         print()
+        end
     end
 end
 
@@ -319,7 +362,8 @@ local function benchmark_error_handling()
         '{"nested": {"unclosed": }', -- Unclosed nested object
     }
     
-    for lib_name, lib in pairs(json_libraries) do
+    for _, lib_name in ipairs(library_order) do
+        local lib = json_libraries[lib_name]
         if lib and lib.decode then
             print("Testing " .. lib_name .. " error handling:")
             local error_count = 0
@@ -331,7 +375,7 @@ local function benchmark_error_handling()
                 local end_time = os.clock()
                 
                 total_time = total_time + (end_time - start_time)
-                if not success then
+                if (not success) or result == nil then
                     error_count = error_count + 1
                 end
             end
@@ -345,7 +389,8 @@ end
 
 -- Main execution
 local available_count = 0
-for name, lib in pairs(json_libraries) do
+for _, name in ipairs(library_order) do
+    local lib = json_libraries[name]
     if lib then available_count = available_count + 1 end
 end
 
