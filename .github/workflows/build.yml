@@ -18,7 +18,7 @@ jobs:
   quality:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6.0.3
+      - uses: actions/checkout@v7.0.0
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@1.96.0
         with:
@@ -62,7 +62,7 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-      - uses: actions/checkout@v6.0.3
+      - uses: actions/checkout@v7.0.0
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@1.96.0
 
@@ -395,7 +395,7 @@ jobs:
   docker-test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6.0.3
+      - uses: actions/checkout@v7.0.0
       
       - name: Run Docker test suite
         timeout-minutes: 10
